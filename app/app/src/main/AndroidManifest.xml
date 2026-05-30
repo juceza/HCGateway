@@ -160,13 +160,15 @@
             tools:node="remove" />
 
         <!-- Sentry is opt-in: auto-init is off so the SDK starts only when the user
-             enables error reporting (HCGatewayApp.initSentry). The DSN is a public
-             client key, safe to commit. Screenshot/trace meta-data the wizard adds is
+             enables error reporting (HCGatewayApp.initSentry). DSN is intentionally
+             blank — forks/distributors set their own (manifest meta-data, a
+             manifestPlaceholder, or programmatic SentryAndroid.init options) so crash
+             reports go to their own Sentry project, not whoever shipped this branch.
+             With an empty DSN the SDK init is a no-op; the toggle is harmless until a
+             DSN is supplied. Screenshot/trace meta-data the wizard adds is
              intentionally omitted (PII risk / traces unused). -->
         <meta-data android:name="io.sentry.auto-init" android:value="false" />
-        <meta-data
-            android:name="io.sentry.dsn"
-            android:value="https://d7b354e99711359f1fa6ca0af508767b@o4511445352054784.ingest.us.sentry.io/4511445367783424" />
+        <meta-data android:name="io.sentry.dsn" android:value="" />
         <meta-data android:name="io.sentry.environment" android:value="${sentryEnvironment}" />
 
     </application>
