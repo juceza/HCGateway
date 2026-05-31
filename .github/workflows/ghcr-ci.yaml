@@ -1,28 +1,47 @@
-name: Docker Image CI for GHCR
+name: Publish API image to GHCR
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 jobs:
   build_and_publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
-    env:
-      IMAGE: ghcr.io/${{ github.repository }}
+      contents: write   # create the GitHub Release
+      packages: write   # push the image to GHCR
     steps:
-      - name: Get latest release tag
-        id: get_release
-        run: |
-          latest_tag=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name)
-          echo "Latest Release Tag: $latest_tag"
-          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
       - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
       - name: Build and push the image
-        run: |
-          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }}" -f ./api/Dockerfile ./api
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }}"
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
