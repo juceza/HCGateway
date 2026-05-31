@@ -35,5 +35,6 @@ ENTRYPOINT []
 # Use the non-root user to run our application
 USER nonroot
 
-# Run the Flask app (reads APP_HOST/APP_PORT from the environment)
-CMD ["python", "main.py"]
+# Run the Flask app under gunicorn (production WSGI server). It imports the
+# module-level `app` from main.py; the dev `app.run(...)` block is not executed.
+CMD ["gunicorn", "--bind", "0.0.0.0:6644", "--workers", "2", "--timeout", "180", "main:app"]

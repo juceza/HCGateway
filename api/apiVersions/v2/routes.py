@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, g
-import os, json
+import os, json, secrets, datetime
 from dotenv import load_dotenv
 load_dotenv()
 from pyfcm import FCMNotification
@@ -10,39 +10,92 @@ from bson.errors import *
 mongo = pymongo.MongoClient(os.environ['MONGO_URI'])
 
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 ph = PasswordHasher()
 
-from cryptography.fernet import Fernet
-import base64, secrets, datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+from crypto import new_wrapped_dek, fernet_for, hash_token
 
 v2 = Blueprint('v2', __name__, url_prefix='/api/v2/')
 
+# Rate limiter. Storage is in-memory per worker; sufficient to blunt brute force
+# / credential stuffing. init_app is called from apiVersions/v2/__init__.py.
+limiter = Limiter(key_func=get_remote_address, default_limits=["300 per hour"])
+
+ACCESS_TTL = datetime.timedelta(hours=12)
+REFRESH_TTL = datetime.timedelta(days=30)
+
+# Whitelist for /fetch queries — only these fields and operators are accepted,
+# so user input can never inject Mongo operators like $where (server-side JS).
+ALLOWED_QUERY_FIELDS = {"_id", "id", "app", "start", "end"}
+ALLOWED_QUERY_OPS = {"$eq", "$ne", "$gt", "$gte", "$lt", "$lte", "$in", "$nin"}
+
+
+def bearer_token():
+    """Return the bearer token from the Authorization header, or None."""
+    header = request.headers.get('Authorization', '')
+    parts = header.split(' ', 1)
+    if len(parts) == 2 and parts[0].lower() == 'bearer' and parts[1].strip():
+        return parts[1].strip()
+    return None
+
+
+def _issue_session():
+    """Generate a fresh (token, refresh) pair and their expiry timestamps."""
+    now = datetime.datetime.now()
+    return {
+        'plain_token': secrets.token_urlsafe(32),
+        'plain_refresh': secrets.token_urlsafe(32),
+        'expiry': now + ACCESS_TTL,
+        'refreshExpiry': now + REFRESH_TTL,
+    }
+
+
+def _sanitize_query(q):
+    """Validate a user-supplied Mongo find() filter. Returns the filter on
+    success or None if it contains anything outside the allowlist."""
+    if not isinstance(q, dict):
+        return None
+    for field, value in q.items():
+        if field.startswith('$') or field not in ALLOWED_QUERY_FIELDS:
+            return None
+        if isinstance(value, dict):
+            for op in value:
+                if op not in ALLOWED_QUERY_OPS:
+                    return None
+    return q
+
+
 @v2.before_request
 def before_request():
-    if request.endpoint == 'v2.login' or request.endpoint == 'v2.refresh':
+    if request.endpoint in ('v2.login', 'v2.refresh'):
         return
-    
-    if not request.headers.get('Authorization'):
-        return jsonify({'error': 'no token provided'}), 400
 
-    token = request.headers.get('Authorization').split(' ')[1]
+    token = bearer_token()
+    if not token:
+        return jsonify({'error': 'no token provided'}), 401
+
     db = mongo['hcgateway']
     usrStore = db['users']
 
-    user = usrStore.find_one({'token': token})
+    user = usrStore.find_one({'token': hash_token(token)})
 
     if not user:
-        return jsonify({'error': 'invalid token'}), 403
-    
-    if datetime.datetime.now() > user['expiry']:
-        return jsonify({'error': 'token expired. Use /api/v2/login to reauthenticate.'}), 403
-    
+        return jsonify({'error': 'invalid token'}), 401
+
+    if 'expiry' not in user or datetime.datetime.now() > user['expiry']:
+        return jsonify({'error': 'token expired. Use /api/v2/login to reauthenticate.'}), 401
+
     g.user = user['_id']
 
     return
 
+
 @v2.route("/login", methods=['POST'])
-def login(): 
+@limiter.limit("5 per minute")
+def login():
     if not request.json or not 'username' in request.json or not 'password' in request.json:
         return jsonify({'error': 'invalid request'}), 400
     username = request.json['username']
@@ -55,95 +108,105 @@ def login():
     user = usrStore.find_one({'username': username})
 
     if not user:
-        user = usrStore.insert_one({'username': username, 'password': ph.hash(password)}).inserted_id
-        usrStore.insert_one({'_id': str(user), 'username': username, 'password': ph.hash(password)})
-        usrStore.delete_one({'_id': ObjectId(user)})
-
-        token = secrets.token_urlsafe(32)
-        refresh = secrets.token_urlsafe(32)
-        expiryDate = datetime.datetime.now() + datetime.timedelta(hours=12)
-        usrStore.update_one({'_id': str(user)}, {"$set": {'token': token, 'refresh': refresh, 'expiry': expiryDate}})
-
+        session = _issue_session()
+        usrStore.insert_one({
+            '_id': str(ObjectId()),
+            'username': username,
+            'password': ph.hash(password),
+            'encKeyWrapped': new_wrapped_dek(),
+            'fcmToken': fcmToken,
+            'token': hash_token(session['plain_token']),
+            'refresh': hash_token(session['plain_refresh']),
+            'expiry': session['expiry'],
+            'refreshExpiry': session['refreshExpiry'],
+        })
         return jsonify({
-            "token": token,
-            "refresh": refresh,
-            "expiry": expiryDate.isoformat()
+            "token": session['plain_token'],
+            "refresh": session['plain_refresh'],
+            "expiry": session['expiry'].isoformat()
         }), 201
-    
+
     try:
         ph.verify(user['password'], password)
-    except: 
+    except VerifyMismatchError:
         return jsonify({'error': 'invalid password'}), 403
-   
+    except Exception:
+        return jsonify({'error': 'invalid password'}), 403
+
+    update = {}
     if fcmToken:
-        try:
-            usrStore.update_one({'username': username}, {"$set": {'fcmToken': fcmToken}})
-        except:
-            return jsonify({'error': 'failed to update fcm token'}), 500
-        
-    sessid = user['_id']
+        update['fcmToken'] = fcmToken
 
-    if not "expiry" in user or datetime.datetime.now() > user['expiry']:
-        token = secrets.token_urlsafe(32)
-        refresh = secrets.token_urlsafe(32)
-        expiryDate = datetime.datetime.now() + datetime.timedelta(hours=12)
-        usrStore.update_one({'_id': sessid}, {"$set": {'token': token, 'refresh': refresh, 'expiry': expiryDate}})
+    # Backfill a data key for any user that somehow lacks one.
+    if not user.get('encKeyWrapped'):
+        update['encKeyWrapped'] = new_wrapped_dek()
 
-    else:
-        token = user['token']
-        refresh = user['refresh']
-        expiryDate = user['expiry']
+    # Always issue a fresh session: only token hashes are stored, so the
+    # plaintext cannot be re-served from the database.
+    session = _issue_session()
+    update['token'] = hash_token(session['plain_token'])
+    update['refresh'] = hash_token(session['plain_refresh'])
+    update['expiry'] = session['expiry']
+    update['refreshExpiry'] = session['refreshExpiry']
+
+    usrStore.update_one({'_id': user['_id']}, {"$set": update})
 
     return jsonify({
-            "token": token,
-            "refresh": refresh,
-            "expiry": expiryDate.isoformat()
+        "token": session['plain_token'],
+        "refresh": session['plain_refresh'],
+        "expiry": session['expiry'].isoformat()
     }), 201
 
 
 @v2.route("/refresh", methods=['POST'])
+@limiter.limit("10 per minute")
 def refresh():
     if not request.json or not 'refresh' in request.json:
         return jsonify({'error': 'invalid request'}), 400
 
-    refresh = request.json['refresh']
+    presented = request.json['refresh']
 
     db = mongo['hcgateway']
     usrStore = db['users']
 
-    user = usrStore.find_one({'refresh': refresh})
+    user = usrStore.find_one({'refresh': hash_token(presented)})
 
     if not user:
         return jsonify({'error': 'invalid refresh token'}), 403
-    
-    token = secrets.token_urlsafe(32)
-    # refresh = secrets.token_urlsafe(32) # disable refresh token rotation- design flaw, see #35
-    expiryDate = datetime.datetime.now() + datetime.timedelta(hours=12)
-    usrStore.update_one({'_id': user['_id']}, {"$set": {'token': token, 'refresh': refresh, 'expiry': expiryDate}})
+
+    if 'refreshExpiry' not in user or datetime.datetime.now() > user['refreshExpiry']:
+        return jsonify({'error': 'refresh token expired. Use /api/v2/login to reauthenticate.'}), 403
+
+    # Rotate BOTH tokens on every refresh, so a captured refresh token cannot be
+    # reused after the legitimate client refreshes.
+    session = _issue_session()
+    usrStore.update_one({'_id': user['_id']}, {"$set": {
+        'token': hash_token(session['plain_token']),
+        'refresh': hash_token(session['plain_refresh']),
+        'expiry': session['expiry'],
+        'refreshExpiry': session['refreshExpiry'],
+    }})
 
     return jsonify({
-            "token": token,
-            "refresh": refresh,
-            "expiry": expiryDate.isoformat()
+        "token": session['plain_token'],
+        "refresh": session['plain_refresh'],
+        "expiry": session['expiry'].isoformat()
     }), 200
+
 
 @v2.route("/revoke", methods=['DELETE'])
 def revoke():
-    token = request.headers.get('Authorization').split(' ')[1]
-
+    # before_request has already authenticated the caller and set g.user.
     db = mongo['hcgateway']
     usrStore = db['users']
 
-    user = usrStore.find_one({'token': token})
+    usrStore.update_one(
+        {'_id': g.user},
+        {"$unset": {'token': 1, 'refresh': 1, 'expiry': 1, 'refreshExpiry': 1}}
+    )
 
-    if not user:
-        return jsonify({'error': 'invalid refresh token'}), 403
-    
-    usrStore.update_one({'_id': user['_id']}, {"$unset": {'token': 1, 'refresh': 1, 'expiry': 1}})
+    return jsonify({"success": True}), 200
 
-    return jsonify({
-            "success": True
-    }), 200
 
 @v2.get("/counts")
 def counts():
@@ -155,12 +218,13 @@ def counts():
         result[display_name] = db[col_name].count_documents({})
     return jsonify(result), 200
 
+
 @v2.post("/sync/<method>")
 def sync(method):
     method = method[0].lower() + method[1:]
     if not method:
         return jsonify({'error': 'no method provided'}), 400
-    if not "data" in request.json:
+    if not request.json or not "data" in request.json:
         return jsonify({'error': 'no data provided'}), 400
 
     userid = g.user
@@ -171,9 +235,7 @@ def sync(method):
     try: user = usrStore.find_one({'_id': userid})
     except InvalidId: return jsonify({'error': 'invalid user id'}), 400
 
-    hashed_password = user['password']
-    key = base64.urlsafe_b64encode(hashed_password.encode("utf-8").ljust(32)[:32])
-    fernet = Fernet(key)
+    fernet = fernet_for(user['encKeyWrapped'])
 
     data = request.json['data']
     if type(data) != list:
@@ -213,6 +275,7 @@ def sync(method):
 
     return jsonify({'success': True}), 200
 
+
 @v2.route("/fetch/<method>", methods=['POST'])
 def fetch(method):
     if not method:
@@ -225,18 +288,16 @@ def fetch(method):
     try: user = usrStore.find_one({'_id': userid})
     except InvalidId: return jsonify({'error': 'invalid user id'}), 400
 
-    hashed_password = user['password']
-    key = base64.urlsafe_b64encode(hashed_password.encode("utf-8").ljust(32)[:32])
-    fernet = Fernet(key)
+    fernet = fernet_for(user['encKeyWrapped'])
 
-    if not "queries" in request.json:
-        queries = []
-    else:
-        queries = request.json['queries']
-    
+    raw_queries = (request.json or {}).get('queries', {})
+    queries = _sanitize_query(raw_queries)
+    if queries is None:
+        return jsonify({'error': 'invalid query'}), 400
+
     db = mongo['hcgateway_'+userid]
     collection = db[method]
-    
+
     docs = []
     for doc in collection.find(queries):
         doc['data'] = json.loads(fernet.decrypt(doc['data'].encode()).decode())
@@ -244,11 +305,12 @@ def fetch(method):
 
     return jsonify(docs), 200
 
+
 @v2.route("/push/<method>", methods=['PUT'])
 def pushData(method):
     if not method:
         return jsonify({'error': 'no method provided'}), 400
-    if not "data" in request.json:
+    if not request.json or not "data" in request.json:
         return jsonify({'error': 'no data provided'}), 400
 
     userid = g.user
@@ -286,11 +348,12 @@ def pushData(method):
 
     return jsonify({'success': True, "message": "request has been sent to device."}), 200
 
+
 @v2.route("/delete/<method>", methods=['DELETE'])
 def delData(method):
     if not method:
         return jsonify({'error': 'no method provided'}), 400
-    if not "uuid" in request.json:
+    if not request.json or not "uuid" in request.json:
         return jsonify({'error': 'no uuid provided'}), 400
 
     userid = g.user
@@ -323,7 +386,6 @@ def delData(method):
     except Exception as e:
         return jsonify({'error': 'Message delivery failed'}), 500
 
-
     return jsonify({'success': True, "message": "request has been sent to device."}), 200
 
 
@@ -332,7 +394,7 @@ def delFromDb(method):
     method = method[0].lower() + method[1:]
     if not method:
         return jsonify({'error': 'no method provided'}), 400
-    if not "uuid" in request.json:
+    if not request.json or not "uuid" in request.json:
         return jsonify({'error': 'no uuid provided'}), 400
 
     userid = g.user
@@ -343,9 +405,7 @@ def delFromDb(method):
 
     db = mongo['hcgateway_'+userid]
     collection = db[method]
-    print(collection)
     for uuid in uuids:
-        print(uuid)
         try: collection.delete_one({"_id": uuid})
         except Exception as e: print(e)
 

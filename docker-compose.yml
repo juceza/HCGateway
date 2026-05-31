@@ -2,23 +2,29 @@
 services:
   api:
     image: ghcr.io/shuchirj/hcgateway:latest
+    # The API is published to your LAN so the phone can reach it. For internet
+    # exposure, put a TLS-terminating reverse proxy (Caddy/nginx/Traefik) in
+    # front and change this to "127.0.0.1:6644:6644" so only the proxy is public.
     ports:
       - "6644:6644"
     env_file:
       - ./api/.env
     container_name: hcgateway_api
     restart: always
+    depends_on:
+      - db
     volumes:
       - ./api/service-account.json:/app/service-account.json
 
   db:
     image: mongo
     restart: always
-    ports:
-      - "27017:27017"
+    # No published ports: MongoDB is reachable only over the internal Docker
+    # network (by the `db` hostname), never from the host or LAN. Credentials
+    # come from ./api/.env (MONGO_INITDB_ROOT_USERNAME / _PASSWORD) — set strong,
+    # unique values there before first run.
+    env_file:
+      - ./api/.env
     volumes:
       - ./db:/data/db
     container_name: hcgateway_db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example

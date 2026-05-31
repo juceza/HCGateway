@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The app lets the user point at a self-hosted server and choose HTTP or HTTPS,
+    so cleartext must remain technically permitted for local-network setups.
+
+    Security posture:
+      - HTTPS is the default and is strongly preferred (login + health data are
+        only encrypted in transit over HTTPS).
+      - When the user explicitly selects HTTP, the login screen shows a prominent
+        warning that data is sent unencrypted.
+      - User-added CA certificates are NOT trusted, reducing the chance of a
+        local MITM proxy silently intercepting HTTPS traffic.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

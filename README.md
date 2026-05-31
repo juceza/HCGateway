@@ -20,7 +20,7 @@ The platform supports **two-way sync**: you can read your data through the REST 
 - You can also trigger a **Force Sync** at any time from the app, optionally over a custom date range.
 - Sync is **incremental** via the Health Connect Changes API — after the first full sync, only records added or modified since the last run are uploaded.
 - Reading data older than 30 days requires the `READ_HEALTH_DATA_HISTORY` permission, which the app requests.
-- The server encrypts each record using **Fernet** encryption before storing it in MongoDB.
+- The server encrypts each record before storing it in MongoDB using **envelope encryption**: every user has a random per-user data key, and that key is itself encrypted with a server master key (`DATA_MASTER_KEY`) that lives in the server environment, not the database. A database-only leak therefore does not expose health data without the master key. (It does not protect against a full server compromise — see [Self Hosting](#self-hosting).)
 - The server exposes an API for developers to log in and retrieve their users' data.
 
 ### Supported data types
@@ -51,7 +51,7 @@ The app syncs the following Health Connect record types:
 - A live server instance maintained by the original author is hosted at `https://api.hcgateway.shuchir.dev/`. You can use it or host your own (see [Self Hosting](#self-hosting)).
 
   > [!IMPORTANT]
-  > **Use any hosted instance at your own risk. By using a server you do not control, you acknowledge that all responsibility is waived from the server owner.**
+  > **Use any hosted instance at your own risk. By using a server you do not control, you acknowledge that all responsibility is waived from the server owner.** Health data is decrypted server-side, so the operator of any instance can read it — self-host if you want sole control, and always connect over HTTPS.
 
 - Install the mobile application from the APK in this repository's Releases section, or build it yourself (see [below](#mobile-application)).
 - Minimum requirement is **Android 8.0 (Oreo, API 26)**.
@@ -66,16 +66,18 @@ The app syncs the following Health Connect record types:
 users {
     _id: string
     username: string
-    password: string
+    password: string         # Argon2 hash
     fcmToken: string
-    expiry: datetime
-    token: string
-    refresh: string
+    expiry: datetime         # access-token expiry
+    refreshExpiry: datetime  # refresh-token expiry
+    token: string            # SHA-256 hash of the access token
+    refresh: string          # SHA-256 hash of the refresh token
+    encKeyWrapped: string    # per-user data key, encrypted with DATA_MASTER_KEY
 }
 ```
 
 > [!NOTE]
-> The user's password is hashed using Argon2. It is never stored in plain text and cannot be retrieved through any API.
+> The user's password is hashed using Argon2. It is never stored in plain text and cannot be retrieved through any API. Access and refresh **tokens are stored as SHA-256 hashes**, so the raw tokens cannot be recovered from a database leak. Refresh tokens are **rotated on every refresh** and expire after 30 days.
 
 ### Data structure
 
@@ -95,7 +97,7 @@ hcgateway_[user_id]: string {
 ### Parameters
 
 - `_id` — The ID of the object.
-- `data` — The object's data, encrypted using Fernet. When requested through the API, it is decrypted for you using the key derived from the user's credentials.
+- `data` — The object's data, encrypted with the user's per-user data key (Fernet). When requested through the API, the server unwraps that key with `DATA_MASTER_KEY` and decrypts the data for you.
 - `id` — Same as `_id`; kept only for backward compatibility and may be removed in a future version.
 - `start` — The start date and time of the object.
 - `end` — The end date and time of the object. May be absent for some object types.
@@ -126,28 +128,32 @@ Firebase is only required if you want your server to trigger remote syncs. To se
 
 ### Server
 
+> [!IMPORTANT]
+> **Secure deployment checklist** — review before exposing the server:
+> - **Set a strong, unique `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD`** in `api/.env` (the defaults in `.env.example` are placeholders). MongoDB is **not** published to the host/LAN by `docker-compose.yml` — keep it that way.
+> - **Generate a `DATA_MASTER_KEY`** (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) and keep it secret and backed up separately. It encrypts every user's data key; **lose it and all stored data is unrecoverable**, leak it together with the database and the data can be decrypted.
+> - **Keep `APP_DEBUG=false`.** Flask debug mode exposes a remote code-execution debugger.
+> - **Do not expose the API directly to the internet.** Keep it on your LAN/VPN, or put a TLS-terminating reverse proxy in front and serve over **HTTPS** only (bind the API to `127.0.0.1` in that case).
+> - The encryption protects against a database-only leak, **not** a full server compromise (an attacker with both the DB and the server environment can decrypt).
+
 #### Docker (recommended)
 
 1. **Prerequisites** — Docker and Docker Compose.
-2. **Environment** — Copy `api/.env.example` to `api/.env` and configure it. For `MONGO_URI`, use the format:
-   ```
-   mongodb://<username>:<password>@db:27017/hcgateway?authSource=admin
-   ```
-   Set the same MongoDB username and password in `docker-compose.yml`. If you want push support, place `service-account.json` in `api/` (see [Firebase](#firebase)).
+2. **Environment** — Copy `api/.env.example` to `api/.env` and configure it: set `DATA_MASTER_KEY`, the MongoDB credentials, and `MONGO_URI` (format `mongodb://<username>:<password>@db:27017/hcgateway?authSource=admin`, matching the credentials). If you want push support, place `service-account.json` in `api/` (see [Firebase](#firebase)).
 3. **Run**
    ```bash
    docker-compose up -d
    ```
-   The API is available at `http://localhost:6644`.
+   The API is available at `http://localhost:6644` (served by gunicorn). Put it behind an HTTPS proxy before exposing it beyond your LAN.
 
 #### Manual
 
 - Prerequisites: [uv](https://docs.astral.sh/uv/) (Python 3.12+, managed by uv), MongoDB.
 - `cd` into `api/`.
 - `uv sync` to install the dependencies from the lockfile into a local `.venv`.
-- Copy `.env.example` to `.env` and fill in the values.
+- Copy `.env.example` to `.env` and fill in the values (including `DATA_MASTER_KEY`).
 - (Optional, for push) Place `service-account.json` in `api/`.
-- `uv run python main.py` to start the server.
+- Development: `uv run python main.py`. Production: run under a WSGI server, e.g. `uv run gunicorn --bind 0.0.0.0:6644 --workers 2 main:app`.
 
 ### Mobile Application
 

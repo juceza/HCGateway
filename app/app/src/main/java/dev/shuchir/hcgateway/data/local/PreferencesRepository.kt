@@ -11,11 +11,12 @@ import javax.inject.Singleton
 @Singleton
 class PreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>,
+    private val tokenCrypto: TokenCrypto,
 ) {
     val settings: Flow<UserSettings> = dataStore.data.map { prefs ->
         UserSettings(
-            token = prefs[UserPreferences.TOKEN] ?: "",
-            refreshToken = prefs[UserPreferences.REFRESH_TOKEN] ?: "",
+            token = tokenCrypto.decrypt(prefs[UserPreferences.TOKEN] ?: ""),
+            refreshToken = tokenCrypto.decrypt(prefs[UserPreferences.REFRESH_TOKEN] ?: ""),
             apiBase = prefs[UserPreferences.API_BASE] ?: "",
             username = prefs[UserPreferences.USERNAME] ?: "",
             themeMode = prefs[UserPreferences.THEME_MODE] ?: "system",
@@ -49,9 +50,11 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun saveTokens(token: String, refreshToken: String) {
+        val encToken = tokenCrypto.encrypt(token)
+        val encRefresh = tokenCrypto.encrypt(refreshToken)
         dataStore.edit { prefs ->
-            prefs[UserPreferences.TOKEN] = token
-            prefs[UserPreferences.REFRESH_TOKEN] = refreshToken
+            prefs[UserPreferences.TOKEN] = encToken
+            prefs[UserPreferences.REFRESH_TOKEN] = encRefresh
         }
     }
 

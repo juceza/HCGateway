@@ -66,6 +66,23 @@ fun LoginScreen(
                 }
             }
 
+            if (!uiState.useHttps) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = "⚠ HTTP sends your username, password and health data " +
+                            "unencrypted. Only use HTTP on a trusted local network — " +
+                            "prefer HTTPS whenever possible.",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = uiState.serverAddress,
                 onValueChange = viewModel::updateServerAddress,
