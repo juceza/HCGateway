@@ -1,4 +1,5 @@
 [tools]
+gradle = "9"
 java = "17"
 python = "3.12"
 uv = "latest"

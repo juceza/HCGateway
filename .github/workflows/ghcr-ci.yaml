@@ -1,22 +1,28 @@
 name: Docker Image CI for GHCR
-on: 
+on:
   workflow_dispatch:
 jobs:
   build_and_publish:
-    environment: build
     runs-on: ubuntu-latest
-    steps: 
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
       - name: Get latest release tag
         id: get_release
         run: |
           latest_tag=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name)
           echo "Latest Release Tag: $latest_tag"
-          echo "::set-output name=latest_tag::$latest_tag"
+          echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Build and push the image
-        run : |
-          docker login --username ShuchirJ --password ${{ secrets.GH_PAT }} ghcr.io
-          docker build -t ghcr.io/shuchirj/hcgateway:latest -t ghcr.io/shuchirj/hcgateway:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }} -f ./api/Dockerfile ./api
-          docker push ghcr.io/shuchirj/hcgateway:latest
-          docker push ghcr.io/shuchirj/hcgateway:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }}
+        run: |
+          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }}" -f ./api/Dockerfile ./api
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ steps.get_release.outputs.latest_tag }}-${{ github.sha }}"
