@@ -68,5 +68,6 @@ test.py
 __pycache__/
 flask_session/
 service-account.json
+google-services.json
 
 .local-files

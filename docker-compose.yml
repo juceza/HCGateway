@@ -1,7 +1,7 @@
 
 services:
   api:
-    image: ghcr.io/shuchirj/hcgateway:latest
+    image: ghcr.io/juceza/hcgateway:latest
     # The API is published to your LAN so the phone can reach it. For internet
     # exposure, put a TLS-terminating reverse proxy (Caddy/nginx/Traefik) in
     # front and change this to "127.0.0.1:6644:6644" so only the proxy is public.
