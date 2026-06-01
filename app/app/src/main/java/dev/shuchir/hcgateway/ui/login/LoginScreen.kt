@@ -95,7 +95,7 @@ fun LoginScreen(
                     imeAction = ImeAction.Next,
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
                 ),
             )
 
@@ -110,7 +110,7 @@ fun LoginScreen(
                     imeAction = ImeAction.Next,
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
                 ),
             )
 
@@ -129,7 +129,7 @@ fun LoginScreen(
                     onDone = {
                         focusManager.clearFocus()
                         viewModel.login()
-                    }
+                    },
                 ),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {

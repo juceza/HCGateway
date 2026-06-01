@@ -2,8 +2,8 @@ package dev.shuchir.hcgateway.data.repository
 
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.changes.Change
-import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.changes.DeletionChange
+import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.request.ChangesTokenRequest
@@ -20,29 +20,33 @@ import javax.inject.Singleton
 import kotlin.reflect.KClass
 
 @Singleton
-class HealthConnectRepository @Inject constructor(
+class HealthConnectRepository
+@Inject
+constructor(
     private val healthConnectClient: HealthConnectClient?,
     private val gson: Gson,
 ) {
     val isAvailable: Boolean get() = healthConnectClient != null
 
     val permissions: Set<String> by lazy {
-        RECORD_TYPES.flatMap { type ->
-            listOf(
-                HealthPermission.getReadPermission(type.recordClass),
-                HealthPermission.getWritePermission(type.recordClass),
-            )
-        }.toSet() + setOf(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)
+        RECORD_TYPES
+            .flatMap { type ->
+                listOf(
+                    HealthPermission.getReadPermission(type.recordClass),
+                    HealthPermission.getWritePermission(type.recordClass),
+                )
+            }.toSet() + setOf(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)
     }
 
     // Required permissions for hasAllPermissions check (excludes optional permissions)
     private val requiredPermissions: Set<String> by lazy {
-        RECORD_TYPES.flatMap { type ->
-            listOf(
-                HealthPermission.getReadPermission(type.recordClass),
-                HealthPermission.getWritePermission(type.recordClass),
-            )
-        }.toSet()
+        RECORD_TYPES
+            .flatMap { type ->
+                listOf(
+                    HealthPermission.getReadPermission(type.recordClass),
+                    HealthPermission.getWritePermission(type.recordClass),
+                )
+            }.toSet()
     }
 
     suspend fun hasAllPermissions(): Boolean {
@@ -56,7 +60,10 @@ class HealthConnectRepository @Inject constructor(
     // Samsung) never appear in the granted set even after "Allow all". Treat them as
     // satisfied iff *neither* the READ nor WRITE sibling is granted — guarded by an
     // overall non-empty granted set so a fully-revoked app doesn't pass the check.
-    private fun isUnsupportedOnDevice(perm: String, granted: Set<String>): Boolean {
+    private fun isUnsupportedOnDevice(
+        perm: String,
+        granted: Set<String>,
+    ): Boolean {
         val base = perm.substringAfterLast(".").removePrefix("READ_").removePrefix("WRITE_")
         return "android.permission.health.READ_$base" !in granted &&
             "android.permission.health.WRITE_$base" !in granted
@@ -90,11 +97,12 @@ class HealthConnectRepository @Inject constructor(
         var total = 0
 
         do {
-            val request = ReadRecordsRequest(
-                recordType = recordClass,
-                timeRangeFilter = TimeRangeFilter.between(startTime, endTime),
-                pageToken = pageToken,
-            )
+            val request =
+                ReadRecordsRequest(
+                    recordType = recordClass,
+                    timeRangeFilter = TimeRangeFilter.between(startTime, endTime),
+                    pageToken = pageToken,
+                )
             val response = client.readRecords(request)
             if (response.records.isNotEmpty()) {
                 onPage(response.records)
@@ -106,19 +114,20 @@ class HealthConnectRepository @Inject constructor(
         return total
     }
 
-    fun recordsToJson(records: List<Record>): JsonElement {
-        return RecordSerializer.serializeRecords(records)
-    }
+    fun recordsToJson(records: List<Record>): JsonElement = RecordSerializer.serializeRecords(records)
 
     suspend fun getChangesToken(): String {
         val client = healthConnectClient ?: throw IllegalStateException("Health Connect not available")
         // Only request changes for record types Health Connect grants permission for.
         // Some types (e.g. MindfulnessSession) cause SecurityException even when not requested.
         val granted = client.permissionController.getGrantedPermissions()
-        var supportedTypes = RECORD_TYPES.filter { type ->
-            val perm = HealthPermission.getReadPermission(type.recordClass)
-            perm in granted
-        }.map { it.recordClass }.toMutableSet()
+        var supportedTypes =
+            RECORD_TYPES
+                .filter { type ->
+                    val perm = HealthPermission.getReadPermission(type.recordClass)
+                    perm in granted
+                }.map { it.recordClass }
+                .toMutableSet()
 
         // Samsung Health Connect occasionally rejects a granted record type at
         // getChangesToken() time even though getGrantedPermissions() lists it.
@@ -174,6 +183,7 @@ class HealthConnectRepository @Inject constructor(
                             val typeName = recordClassName(record::class)
                             upserted.getOrPut(typeName) { mutableListOf() }.add(record)
                         }
+
                         is DeletionChange -> {
                             // DeletionChange doesn't carry type info — skip for now
                         }
@@ -206,7 +216,10 @@ class HealthConnectRepository @Inject constructor(
         healthConnectClient?.insertRecords(records)
     }
 
-    suspend fun deleteRecordsByIds(recordClass: KClass<out Record>, ids: List<String>) {
+    suspend fun deleteRecordsByIds(
+        recordClass: KClass<out Record>,
+        ids: List<String>,
+    ) {
         healthConnectClient?.deleteRecords(
             recordType = recordClass,
             recordIdsList = ids,
@@ -214,7 +227,5 @@ class HealthConnectRepository @Inject constructor(
         )
     }
 
-    private fun recordClassName(kClass: KClass<out Record>): String {
-        return RECORD_TYPES.find { it.recordClass == kClass }?.name ?: kClass.simpleName ?: "Unknown"
-    }
+    private fun recordClassName(kClass: KClass<out Record>): String = RECORD_TYPES.find { it.recordClass == kClass }?.name ?: kClass.simpleName ?: "Unknown"
 }

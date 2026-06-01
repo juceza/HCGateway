@@ -15,45 +15,46 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val LightColorScheme = lightColorScheme(
-    primary = md_theme_light_primary,
-    onPrimary = md_theme_light_onPrimary,
-    primaryContainer = md_theme_light_primaryContainer,
-    onPrimaryContainer = md_theme_light_onPrimaryContainer,
-    secondary = md_theme_light_secondary,
-    onSecondary = md_theme_light_onSecondary,
-    secondaryContainer = md_theme_light_secondaryContainer,
-    onSecondaryContainer = md_theme_light_onSecondaryContainer,
-    surface = md_theme_light_surface,
-    onSurface = md_theme_light_onSurface,
-    background = md_theme_light_background,
-    onBackground = md_theme_light_onBackground,
-    error = md_theme_light_error,
-    onError = md_theme_light_onError,
-)
+private val LightColorScheme =
+    lightColorScheme(
+        primary = md_theme_light_primary,
+        onPrimary = md_theme_light_onPrimary,
+        primaryContainer = md_theme_light_primaryContainer,
+        onPrimaryContainer = md_theme_light_onPrimaryContainer,
+        secondary = md_theme_light_secondary,
+        onSecondary = md_theme_light_onSecondary,
+        secondaryContainer = md_theme_light_secondaryContainer,
+        onSecondaryContainer = md_theme_light_onSecondaryContainer,
+        surface = md_theme_light_surface,
+        onSurface = md_theme_light_onSurface,
+        background = md_theme_light_background,
+        onBackground = md_theme_light_onBackground,
+        error = md_theme_light_error,
+        onError = md_theme_light_onError,
+    )
 
-private val DarkColorScheme = darkColorScheme(
-    primary = md_theme_dark_primary,
-    onPrimary = md_theme_dark_onPrimary,
-    primaryContainer = md_theme_dark_primaryContainer,
-    onPrimaryContainer = md_theme_dark_onPrimaryContainer,
-    secondary = md_theme_dark_secondary,
-    onSecondary = md_theme_dark_onSecondary,
-    secondaryContainer = md_theme_dark_secondaryContainer,
-    onSecondaryContainer = md_theme_dark_onSecondaryContainer,
-    surface = md_theme_dark_surface,
-    onSurface = md_theme_dark_onSurface,
-    background = md_theme_dark_background,
-    onBackground = md_theme_dark_onBackground,
-    error = md_theme_dark_error,
-    onError = md_theme_dark_onError,
-)
+private val DarkColorScheme =
+    darkColorScheme(
+        primary = md_theme_dark_primary,
+        onPrimary = md_theme_dark_onPrimary,
+        primaryContainer = md_theme_dark_primaryContainer,
+        onPrimaryContainer = md_theme_dark_onPrimaryContainer,
+        secondary = md_theme_dark_secondary,
+        onSecondary = md_theme_dark_onSecondary,
+        secondaryContainer = md_theme_dark_secondaryContainer,
+        onSecondaryContainer = md_theme_dark_onSecondaryContainer,
+        surface = md_theme_dark_surface,
+        onSurface = md_theme_dark_onSurface,
+        background = md_theme_dark_background,
+        onBackground = md_theme_dark_onBackground,
+        error = md_theme_dark_error,
+        onError = md_theme_dark_onError,
+    )
 
 private val ThemeTransitionDuration = 200
 
 @Composable
-private fun animateColor(target: Color) =
-    animateColorAsState(target, tween(ThemeTransitionDuration), label = "").value
+private fun animateColor(target: Color) = animateColorAsState(target, tween(ThemeTransitionDuration), label = "").value
 
 @Composable
 private fun ColorScheme.animated() = copy(
@@ -100,14 +101,21 @@ fun HCGatewayTheme(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    val colorScheme = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val colorScheme =
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                val context = LocalContext.current
+                if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
+
+            isDark -> {
+                DarkColorScheme
+            }
+
+            else -> {
+                LightColorScheme
+            }
         }
-        isDark -> DarkColorScheme
-        else -> LightColorScheme
-    }
 
     val extendedColors = if (isDark) DarkExtendedColors else LightExtendedColors
 

@@ -1,10 +1,12 @@
-import { useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from 'react';
 
-import { CountCard } from "@/components/CountCard";
-import { SummaryCard } from "@/components/SummaryCard";
-import { groupPopulatedTypes, shortWindow } from "@/lib/dashboard";
-import { useCounts } from "@/lib/queries";
+import { createFileRoute } from '@tanstack/react-router';
+
+import { groupPopulatedTypes, shortWindow } from '@/lib/dashboard';
+import { useCounts } from '@/lib/queries';
+
+import { CountCard } from '@/components/CountCard';
+import { SummaryCard } from '@/components/SummaryCard';
 
 // Overview-first dashboard home. Driven by `/counts`: it renders a
 // skeleton immediately, then one card per record type with `count > 0`, grouped
@@ -13,7 +15,7 @@ import { useCounts } from "@/lib/queries";
 // `/fetch` (the `SummaryCard` owns that query and its per-card states); every
 // other type shows a count-only card and issues no `/fetch`, bounding the home's
 // network cost to the charted types.
-export const Route = createFileRoute("/_authed/")({
+export const Route = createFileRoute('/_authed/')({
   component: Dashboard,
 });
 
@@ -23,15 +25,15 @@ function Dashboard() {
   const window = useMemo(() => shortWindow(new Date()), []);
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">
+    <main className='mx-auto w-full max-w-5xl px-4 py-8'>
+      <h1 className='mb-6 text-2xl font-semibold tracking-tight'>
         Your health
       </h1>
 
       {isLoading && <DashboardSkeleton />}
 
       {isError && (
-        <p data-testid="dashboard-error" className="text-sm text-destructive">
+        <p data-testid='dashboard-error' className='text-destructive text-sm'>
           Couldn’t load your data. Please try again.
         </p>
       )}
@@ -54,23 +56,23 @@ function Populated({
 
   if (groups.length === 0) {
     return (
-      <p data-testid="dashboard-empty" className="text-muted-foreground">
+      <p data-testid='dashboard-empty' className='text-muted-foreground'>
         No synced data yet. Once your app syncs, your health data shows up here.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className='flex flex-col gap-8'>
       {groups.map((group) => (
         <section
           key={group.category}
           data-testid={`category-${group.category}`}
         >
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          <h2 className='text-muted-foreground mb-3 text-sm font-medium tracking-wide uppercase'>
             {group.category}
           </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'>
             {group.types.map(({ meta, count }) =>
               meta.charted ? (
                 <SummaryCard key={meta.name} meta={meta} window={window} />
@@ -89,11 +91,11 @@ function Populated({
 function DashboardSkeleton() {
   return (
     <div
-      data-testid="dashboard-skeleton"
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+      data-testid='dashboard-skeleton'
+      className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'
     >
       {Array.from({ length: 8 }, (_, i) => (
-        <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
+        <div key={i} className='bg-muted h-32 animate-pulse rounded-xl' />
       ))}
     </div>
   );

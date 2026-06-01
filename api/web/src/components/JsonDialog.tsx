@@ -1,12 +1,13 @@
+import type { HealthRecord } from '@/lib/api';
+import { prettyJson } from '@/lib/recordDetail';
+
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import type { HealthRecord } from "@/lib/api";
-import { prettyJson } from "@/lib/recordDetail";
+} from '@/components/ui/dialog';
 
 // Pretty-printed JSON detail dialog for the full decrypted record.
 // Controlled by the route: `record` is the selected row's record (or `null`
@@ -22,7 +23,7 @@ interface JsonDialogProps {
 export function JsonDialog({ record, open, onOpenChange }: JsonDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="json-dialog" className="max-w-2xl">
+      <DialogContent data-testid='json-dialog' className='max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Record details</DialogTitle>
           <DialogDescription>
@@ -31,8 +32,8 @@ export function JsonDialog({ record, open, onOpenChange }: JsonDialogProps) {
         </DialogHeader>
         {record && (
           <pre
-            data-testid="json-content"
-            className="max-h-[60vh] overflow-auto rounded-lg bg-muted p-4 text-xs leading-relaxed"
+            data-testid='json-content'
+            className='bg-muted max-h-[60vh] overflow-auto rounded-lg p-4 text-xs leading-relaxed'
           >
             {prettyJson(record)}
           </pre>

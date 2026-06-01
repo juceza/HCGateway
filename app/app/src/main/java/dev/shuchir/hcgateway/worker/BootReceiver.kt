@@ -13,12 +13,16 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
-
     @Inject lateinit var preferencesRepository: PreferencesRepository
+
     @Inject lateinit var syncScheduler: SyncScheduler
+
     @Inject lateinit var syncNotificationManager: SyncNotificationManager
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
 
         val pendingResult = goAsync()

@@ -1,16 +1,11 @@
 package dev.shuchir.hcgateway.ui.home
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.Crossfade
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.pullToRefresh
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,9 +16,14 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
@@ -77,7 +77,6 @@ fun HomeScreen(
         }
     }
 
-
     var isRefreshing by remember { mutableStateOf(serverCounts == null) }
     val pullToRefreshState = rememberPullToRefreshState()
 
@@ -110,345 +109,374 @@ fun HomeScreen(
                 .padding(padding)
                 .pullToRefresh(isRefreshing, state = pullToRefreshState, onRefresh = { isRefreshing = true }),
         ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // --- Connection status card ---
-            val statusColor = when (serverReachable) {
-                true -> ExtendedTheme.colors.successContainer
-                false -> MaterialTheme.colorScheme.errorContainer
-                null -> MaterialTheme.colorScheme.surfaceContainerLow
-            }
-            val statusContentColor = when (serverReachable) {
-                true -> ExtendedTheme.colors.onSuccessContainer
-                false -> MaterialTheme.colorScheme.onErrorContainer
-                null -> MaterialTheme.colorScheme.onSurface
-            }
-            val statusLabel = when (serverReachable) {
-                true -> "Connected to ${settings.apiBase}"
-                false -> "Cannot reach ${settings.apiBase}"
-                null -> "Connecting to ${settings.apiBase}..."
-            }
-
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth().then(
-                    if (serverReachable == false) Modifier.clickable { viewModel.checkServerConnection() }
-                    else Modifier
-                ),
-                colors = CardDefaults.elevatedCardColors(containerColor = statusColor),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(Icons.Default.CloudSync, contentDescription = null, tint = statusContentColor)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(statusLabel, style = MaterialTheme.typography.titleSmall, color = statusContentColor)
-                        Text("User: ${settings.username}", style = MaterialTheme.typography.bodySmall, color = statusContentColor.copy(alpha = 0.7f))
+                // --- Connection status card ---
+                val statusColor = when (serverReachable) {
+                    true -> ExtendedTheme.colors.successContainer
+                    false -> MaterialTheme.colorScheme.errorContainer
+                    null -> MaterialTheme.colorScheme.surfaceContainerLow
+                }
+                val statusContentColor = when (serverReachable) {
+                    true -> ExtendedTheme.colors.onSuccessContainer
+                    false -> MaterialTheme.colorScheme.onErrorContainer
+                    null -> MaterialTheme.colorScheme.onSurface
+                }
+                val statusLabel = when (serverReachable) {
+                    true -> "Connected to ${settings.apiBase}"
+                    false -> "Cannot reach ${settings.apiBase}"
+                    null -> "Connecting to ${settings.apiBase}..."
+                }
+
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth().then(
                         if (serverReachable == false) {
-                            Text("Tap to retry", style = MaterialTheme.typography.labelSmall, color = statusContentColor.copy(alpha = 0.5f))
-                        }
-                    }
-                }
-            }
-
-            if (hasPermissions == false) {
-                WarningActionCard(
-                    icon = Icons.Default.Security,
-                    title = "Health Connect permissions required",
-                    description = "Grant permissions to read and write health data",
-                    buttonText = "Grant Permissions",
-                    onClick = {
-                        if (onNavigateToPermissions != null) onNavigateToPermissions()
-                        else permissionLauncher.launch(viewModel.getRequiredPermissions())
-                    },
-                )
-            }
-
-            if (batteryOptimized) {
-                WarningActionCard(
-                    icon = Icons.Default.EnergySavingsLeaf,
-                    title = "Battery optimization enabled",
-                    description = "Background sync will be delayed. Disable optimization for reliable sync.",
-                    buttonText = "Disable Optimization",
-                    onClick = viewModel::requestIgnoreBatteryOptimizations,
-                )
-            }
-
-            // --- Sync card (actions + results) ---
-            FilledCard(tonalElevation = true) {
-                // Auto-dismiss Done/Cancelled: wait for amplitude morph, then shrink, then reset
-                var progressDismissing by remember { mutableStateOf(false) }
-                LaunchedEffect(syncState) {
-                    suspend fun dismissProgress(timestamp: Long, consumeChanges: Boolean = false) {
-                        val age = System.currentTimeMillis() - timestamp
-                        if (age > 2000) {
-                            viewModel.resetSyncState()
-                            return
-                        }
-                        kotlinx.coroutines.delay(600)
-                        progressDismissing = true
-                        kotlinx.coroutines.delay(400)
-                        progressDismissing = false
-                        viewModel.loadServerCounts()
-                        viewModel.loadPendingCounts(consumeChanges = consumeChanges)
-                        viewModel.resetSyncState()
-                    }
-
-                    when (syncState) {
-                        is SyncState.Done -> {
-                            val done = syncState as SyncState.Done
-                            lastFailedTypes = done.failedTypes.ifEmpty { emptyList() }
-                            dismissProgress(done.timestamp, consumeChanges = syncSource == 1)
-                        }
-                        is SyncState.Cancelled -> {
-                            val cancelled = syncState as SyncState.Cancelled
-                            dismissProgress(cancelled.timestamp)
-                        }
-                        else -> {}
-                    }
-                }
-
-                val isSyncing = syncState is SyncState.Syncing
-                val isDone = syncState is SyncState.Done || syncState is SyncState.Cancelled
-                val showProgress = isSyncing || isDone
-                val errorState = syncState as? SyncState.Error
-
-                // syncSource: 0 = Sync (left), 1 = Force Sync (right)
-                val showCancel = isSyncing || isDone || pendingSync != null
-                var cancelRequested by remember { mutableStateOf(false) }
-                if (!showCancel) cancelRequested = false
-
-                Text("Sync", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
-
-                // Progress bar above buttons — height animates to 0 when idle
-                val syncingState = syncState as? SyncState.Syncing
-                val targetProgress = when {
-                    isDone -> 1f
-                    syncingState != null && syncingState.totalTypes > 0 -> syncingState.typesCompleted.toFloat() / syncingState.totalTypes
-                    else -> 0f
-                }
-                val animatedProgress by animateFloatAsState(
-                    targetValue = targetProgress,
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    label = "syncProgress",
-                )
-                val amplitudeValue = if (isDone || !showProgress) 0f else 1f
-                val progressHeight by animateDpAsState(
-                    targetValue = if (showProgress && !progressDismissing) 16.dp else 0.dp,
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    label = "progressHeight",
-                )
-                if (progressHeight > 0.dp) {
-                    LinearWavyProgressIndicator(
-                        progress = { animatedProgress },
-                        modifier = Modifier.fillMaxWidth().height(progressHeight),
-                        amplitude = { amplitudeValue },
-                    )
-                    val showStatusText = syncingState != null && !progressDismissing && progressHeight > 8.dp
-                    var lastStatusText by remember { mutableStateOf("") }
-                    if (syncingState != null) {
-                        val types = "${syncingState.typesCompleted}/${syncingState.totalTypes} types"
-                        val records = syncingState.recordsSynced
-                        val currentType = syncingState.currentType
-                        lastStatusText = when {
-                            records > 0 -> "$types · $records records"
-                            currentType.isNotBlank() -> "$types · $currentType…"
-                            else -> types
-                        }
-                    }
-                    val statusTextHeight by animateDpAsState(
-                        targetValue = if (showStatusText) 20.dp else 0.dp,
-                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                        label = "statusTextHeight",
-                    )
-                    if (statusTextHeight > 0.dp && lastStatusText.isNotBlank()) {
-                        Text(
-                            lastStatusText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp).height(statusTextHeight),
-                        )
-                    }
-                    Spacer(Modifier.height(if (progressHeight > 8.dp) 4.dp else 0.dp))
-                }
-
-                // Error
-                if (errorState != null) {
-                    Text("Error: ${errorState.message}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = viewModel::resetSyncState) { Text("Dismiss") }
-                    }
-                }
-
-                // Buttons — the non-pressed button shrinks, pressed button morphs to Cancel
-                if (errorState == null) {
-                    // The button that was NOT pressed shrinks to 0
-                    val leftWeight by animateFloatAsState(
-                        targetValue = when {
-                            showCancel && syncSource == 1 -> 0f // Force Sync pressed → left shrinks
-                            showCancel -> 1f // Sync pressed → left stays (becomes Cancel)
-                            else -> 1f
+                            Modifier.clickable { viewModel.checkServerConnection() }
+                        } else {
+                            Modifier
                         },
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                        label = "leftWeight",
-                        finishedListener = { value ->
-                            if (value == 0f && pendingSync != null) {
-                                pendingSync?.invoke()
-                                pendingSync = null
-                            }
-                        },
-                    )
-                    val rightWeight by animateFloatAsState(
-                        targetValue = when {
-                            showCancel && syncSource == 0 -> 0f // Sync pressed → right shrinks
-                            showCancel -> 1f // Force Sync pressed → right stays (becomes Cancel)
-                            else -> 1f
-                        },
-                        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                        label = "rightWeight",
-                        finishedListener = { value ->
-                            if (value == 0f && pendingSync != null) {
-                                pendingSync?.invoke()
-                                pendingSync = null
-                            }
-                        },
-                    )
-
-                    val buttonHeight = 40.dp
+                    ),
+                    colors = CardDefaults.elevatedCardColors(containerColor = statusColor),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+                ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(
-                            if (leftWeight > 0.05f && rightWeight > 0.05f) 8.dp else 0.dp
-                        ),
-                        modifier = Modifier.fillMaxWidth().height(buttonHeight),
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        // Left slot
-                        if (leftWeight > 0.05f) {
-                            when {
-                                // Sync pressed → left becomes Cancel
-                                showCancel && syncSource == 0 -> OutlinedButton(
-                                    onClick = { cancelRequested = true; viewModel.cancelSync() },
-                                    modifier = Modifier.weight(leftWeight).fillMaxHeight(),
-                                    shapes = ButtonDefaults.shapes(),
-                                    enabled = !cancelRequested,
-                                ) { Text("Cancel") }
-                                // Force Sync pressed → left is shrinking placeholder
-                                showCancel && syncSource == 1 -> Spacer(Modifier.weight(leftWeight))
-                                // Idle → normal Sync button
-                                else -> Button(
-                                    onClick = { syncSource = 0; pendingSync = { viewModel.syncNow() } },
-                                    modifier = Modifier.weight(leftWeight).fillMaxHeight(),
-                                    enabled = hasPermissions == true,
-                                    shapes = ButtonDefaults.shapes(),
-                                ) {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Sync")
-                                }
-                            }
-                        }
-                        // Right slot
-                        if (rightWeight > 0.05f) {
-                            when {
-                                // Force Sync pressed → right becomes Cancel
-                                showCancel && syncSource == 1 -> OutlinedButton(
-                                    onClick = { cancelRequested = true; viewModel.cancelSync() },
-                                    modifier = Modifier.weight(rightWeight).fillMaxHeight(),
-                                    shapes = ButtonDefaults.shapes(),
-                                    enabled = !cancelRequested,
-                                ) { Text("Cancel") }
-                                // Sync pressed → right is shrinking placeholder
-                                showCancel && syncSource == 0 -> Spacer(Modifier.weight(rightWeight))
-                                // Idle → normal Force Sync button
-                                else -> OutlinedButton(
-                                    onClick = { showDatePicker = true },
-                                    modifier = Modifier.weight(rightWeight).fillMaxHeight(),
-                                    enabled = hasPermissions == true,
-                                    shapes = ButtonDefaults.shapes(),
-                                ) {
-                                    Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Force Sync", maxLines = 1)
-                                }
+                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = statusContentColor)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(statusLabel, style = MaterialTheme.typography.titleSmall, color = statusContentColor)
+                            Text("User: ${settings.username}", style = MaterialTheme.typography.bodySmall, color = statusContentColor.copy(alpha = 0.7f))
+                            if (serverReachable == false) {
+                                Text("Tap to retry", style = MaterialTheme.typography.labelSmall, color = statusContentColor.copy(alpha = 0.5f))
                             }
                         }
                     }
                 }
 
-                // Failed types warning
-                if (lastFailedTypes.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Failed to sync: ${lastFailedTypes.joinToString(", ")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                if (hasPermissions == false) {
+                    WarningActionCard(
+                        icon = Icons.Default.Security,
+                        title = "Health Connect permissions required",
+                        description = "Grant permissions to read and write health data",
+                        buttonText = "Grant Permissions",
+                        onClick = {
+                            if (onNavigateToPermissions != null) {
+                                onNavigateToPermissions()
+                            } else {
+                                permissionLauncher.launch(viewModel.getRequiredPermissions())
+                            }
+                        },
                     )
                 }
 
-                // Data overview
-                val showTable = settings.lastSync > 0 || serverCounts == null || serverCounts?.isNotEmpty() == true
-                if (showTable) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    if (settings.lastSync > 0) {
-                        val lastSyncTime = Instant.ofEpochMilli(settings.lastSync)
-                            .atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                if (batteryOptimized) {
+                    WarningActionCard(
+                        icon = Icons.Default.EnergySavingsLeaf,
+                        title = "Battery optimization enabled",
+                        description = "Background sync will be delayed. Disable optimization for reliable sync.",
+                        buttonText = "Disable Optimization",
+                        onClick = viewModel::requestIgnoreBatteryOptimizations,
+                    )
+                }
+
+                // --- Sync card (actions + results) ---
+                FilledCard(tonalElevation = true) {
+                    // Auto-dismiss Done/Cancelled: wait for amplitude morph, then shrink, then reset
+                    var progressDismissing by remember { mutableStateOf(false) }
+                    LaunchedEffect(syncState) {
+                        suspend fun dismissProgress(timestamp: Long, consumeChanges: Boolean = false) {
+                            val age = System.currentTimeMillis() - timestamp
+                            if (age > 2000) {
+                                viewModel.resetSyncState()
+                                return
+                            }
+                            kotlinx.coroutines.delay(600)
+                            progressDismissing = true
+                            kotlinx.coroutines.delay(400)
+                            progressDismissing = false
+                            viewModel.loadServerCounts()
+                            viewModel.loadPendingCounts(consumeChanges = consumeChanges)
+                            viewModel.resetSyncState()
+                        }
+
+                        when (syncState) {
+                            is SyncState.Done -> {
+                                val done = syncState as SyncState.Done
+                                lastFailedTypes = done.failedTypes.ifEmpty { emptyList() }
+                                dismissProgress(done.timestamp, consumeChanges = syncSource == 1)
+                            }
+
+                            is SyncState.Cancelled -> {
+                                val cancelled = syncState as SyncState.Cancelled
+                                dismissProgress(cancelled.timestamp)
+                            }
+
+                            else -> {}
+                        }
+                    }
+
+                    val isSyncing = syncState is SyncState.Syncing
+                    val isDone = syncState is SyncState.Done || syncState is SyncState.Cancelled
+                    val showProgress = isSyncing || isDone
+                    val errorState = syncState as? SyncState.Error
+
+                    // syncSource: 0 = Sync (left), 1 = Force Sync (right)
+                    val showCancel = isSyncing || isDone || pendingSync != null
+                    var cancelRequested by remember { mutableStateOf(false) }
+                    if (!showCancel) cancelRequested = false
+
+                    Text("Sync", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))
+
+                    // Progress bar above buttons — height animates to 0 when idle
+                    val syncingState = syncState as? SyncState.Syncing
+                    val targetProgress = when {
+                        isDone -> 1f
+                        syncingState != null && syncingState.totalTypes > 0 -> syncingState.typesCompleted.toFloat() / syncingState.totalTypes
+                        else -> 0f
+                    }
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = targetProgress,
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        label = "syncProgress",
+                    )
+                    val amplitudeValue = if (isDone || !showProgress) 0f else 1f
+                    val progressHeight by animateDpAsState(
+                        targetValue = if (showProgress && !progressDismissing) 16.dp else 0.dp,
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        label = "progressHeight",
+                    )
+                    if (progressHeight > 0.dp) {
+                        LinearWavyProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier.fillMaxWidth().height(progressHeight),
+                            amplitude = { amplitudeValue },
+                        )
+                        val showStatusText = syncingState != null && !progressDismissing && progressHeight > 8.dp
+                        var lastStatusText by remember { mutableStateOf("") }
+                        if (syncingState != null) {
+                            val types = "${syncingState.typesCompleted}/${syncingState.totalTypes} types"
+                            val records = syncingState.recordsSynced
+                            val currentType = syncingState.currentType
+                            lastStatusText = when {
+                                records > 0 -> "$types · $records records"
+                                currentType.isNotBlank() -> "$types · $currentType…"
+                                else -> types
+                            }
+                        }
+                        val statusTextHeight by animateDpAsState(
+                            targetValue = if (showStatusText) 20.dp else 0.dp,
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                            label = "statusTextHeight",
+                        )
+                        if (statusTextHeight > 0.dp && lastStatusText.isNotBlank()) {
+                            Text(
+                                lastStatusText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp).height(statusTextHeight),
+                            )
+                        }
+                        Spacer(Modifier.height(if (progressHeight > 8.dp) 4.dp else 0.dp))
+                    }
+
+                    // Error
+                    if (errorState != null) {
+                        Text("Error: ${errorState.message}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = viewModel::resetSyncState) { Text("Dismiss") }
+                        }
+                    }
+
+                    // Buttons — the non-pressed button shrinks, pressed button morphs to Cancel
+                    if (errorState == null) {
+                        // The button that was NOT pressed shrinks to 0
+                        val leftWeight by animateFloatAsState(
+                            targetValue = when {
+                                showCancel && syncSource == 1 -> 0f
+
+                                // Force Sync pressed → left shrinks
+                                showCancel -> 1f
+
+                                // Sync pressed → left stays (becomes Cancel)
+                                else -> 1f
+                            },
+                            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                            label = "leftWeight",
+                            finishedListener = { value ->
+                                if (value == 0f && pendingSync != null) {
+                                    pendingSync?.invoke()
+                                    pendingSync = null
+                                }
+                            },
+                        )
+                        val rightWeight by animateFloatAsState(
+                            targetValue = when {
+                                showCancel && syncSource == 0 -> 0f
+
+                                // Sync pressed → right shrinks
+                                showCancel -> 1f
+
+                                // Force Sync pressed → right stays (becomes Cancel)
+                                else -> 1f
+                            },
+                            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                            label = "rightWeight",
+                            finishedListener = { value ->
+                                if (value == 0f && pendingSync != null) {
+                                    pendingSync?.invoke()
+                                    pendingSync = null
+                                }
+                            },
+                        )
+
+                        val buttonHeight = 40.dp
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(
+                                if (leftWeight > 0.05f && rightWeight > 0.05f) 8.dp else 0.dp,
+                            ),
+                            modifier = Modifier.fillMaxWidth().height(buttonHeight),
+                        ) {
+                            // Left slot
+                            if (leftWeight > 0.05f) {
+                                when {
+                                    // Sync pressed → left becomes Cancel
+                                    showCancel && syncSource == 0 -> OutlinedButton(
+                                        onClick = {
+                                            cancelRequested = true
+                                            viewModel.cancelSync()
+                                        },
+                                        modifier = Modifier.weight(leftWeight).fillMaxHeight(),
+                                        shapes = ButtonDefaults.shapes(),
+                                        enabled = !cancelRequested,
+                                    ) { Text("Cancel") }
+
+                                    // Force Sync pressed → left is shrinking placeholder
+                                    showCancel && syncSource == 1 -> Spacer(Modifier.weight(leftWeight))
+
+                                    // Idle → normal Sync button
+                                    else -> Button(
+                                        onClick = {
+                                            syncSource = 0
+                                            pendingSync = { viewModel.syncNow() }
+                                        },
+                                        modifier = Modifier.weight(leftWeight).fillMaxHeight(),
+                                        enabled = hasPermissions == true,
+                                        shapes = ButtonDefaults.shapes(),
+                                    ) {
+                                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Sync")
+                                    }
+                                }
+                            }
+                            // Right slot
+                            if (rightWeight > 0.05f) {
+                                when {
+                                    // Force Sync pressed → right becomes Cancel
+                                    showCancel && syncSource == 1 -> OutlinedButton(
+                                        onClick = {
+                                            cancelRequested = true
+                                            viewModel.cancelSync()
+                                        },
+                                        modifier = Modifier.weight(rightWeight).fillMaxHeight(),
+                                        shapes = ButtonDefaults.shapes(),
+                                        enabled = !cancelRequested,
+                                    ) { Text("Cancel") }
+
+                                    // Sync pressed → right is shrinking placeholder
+                                    showCancel && syncSource == 0 -> Spacer(Modifier.weight(rightWeight))
+
+                                    // Idle → normal Force Sync button
+                                    else -> OutlinedButton(
+                                        onClick = { showDatePicker = true },
+                                        modifier = Modifier.weight(rightWeight).fillMaxHeight(),
+                                        enabled = hasPermissions == true,
+                                        shapes = ButtonDefaults.shapes(),
+                                    ) {
+                                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Force Sync", maxLines = 1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Failed types warning
+                    if (lastFailedTypes.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            "Last synced: $lastSyncTime",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 8.dp),
+                            "Failed to sync: ${lastFailedTypes.joinToString(", ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
-                    val density = LocalDensity.current
-                    val tableHeightPx by viewModel.tableHeightPx.collectAsState()
-                    val minHeight = with(density) { tableHeightPx.toDp() }
-                    Box(modifier = Modifier.defaultMinSize(minHeight = minHeight)) {
-                        Crossfade(
-                            targetState = serverCounts != null,
-                            label = "tableAnim",
-                        ) { loaded ->
-                            if (loaded) {
-                                Column(modifier = Modifier.onGloballyPositioned { viewModel.updateTableHeight(it.size.height) }) {
-                                    DataOverviewTable(pendingCounts, serverCounts, hasEverSynced = settings.lastSync > 0)
-                                }
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = minHeight),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    LoadingIndicator(modifier = Modifier.size(32.dp))
+
+                    // Data overview
+                    val showTable = settings.lastSync > 0 || serverCounts == null || serverCounts?.isNotEmpty() == true
+                    if (showTable) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        if (settings.lastSync > 0) {
+                            val lastSyncTime = Instant.ofEpochMilli(settings.lastSync)
+                                .atZone(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                            Text(
+                                "Last synced: $lastSyncTime",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 8.dp),
+                            )
+                        }
+                        val density = LocalDensity.current
+                        val tableHeightPx by viewModel.tableHeightPx.collectAsState()
+                        val minHeight = with(density) { tableHeightPx.toDp() }
+                        Box(modifier = Modifier.defaultMinSize(minHeight = minHeight)) {
+                            Crossfade(
+                                targetState = serverCounts != null,
+                                label = "tableAnim",
+                            ) { loaded ->
+                                if (loaded) {
+                                    Column(modifier = Modifier.onGloballyPositioned { viewModel.updateTableHeight(it.size.height) }) {
+                                        DataOverviewTable(pendingCounts, serverCounts, hasEverSynced = settings.lastSync > 0)
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = minHeight),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        LoadingIndicator(modifier = Modifier.size(32.dp))
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // --- Health Connect unavailable ---
-            if (!viewModel.isHealthConnectAvailable) {
-                FilledCard(tonalElevation = true) {
-                    Text(
-                        "Health Connect is not available on this device",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                // --- Health Connect unavailable ---
+                if (!viewModel.isHealthConnectAvailable) {
+                    FilledCard(tonalElevation = true) {
+                        Text(
+                            "Health Connect is not available on this device",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
-        }
 
-        PullToRefreshDefaults.LoadingIndicator(
-            state = pullToRefreshState,
-            isRefreshing = isRefreshing,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
+            PullToRefreshDefaults.LoadingIndicator(
+                state = pullToRefreshState,
+                isRefreshing = isRefreshing,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
     }
 
@@ -461,7 +489,7 @@ fun HomeScreen(
                         .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
                     return utcTimeMillis < startOfTomorrow
                 }
-            }
+            },
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -490,7 +518,6 @@ fun HomeScreen(
             )
         }
     }
-
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -534,8 +561,11 @@ private fun DataOverviewTable(
                     pendingText,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = if (hasEverSynced && pending > 0) FontWeight.Medium else FontWeight.Normal,
-                    color = if (hasEverSynced && pending > 0) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (hasEverSynced && pending > 0) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.widthIn(min = 32.dp),
                 )
                 Text(
@@ -548,4 +578,3 @@ private fun DataOverviewTable(
         }
     }
 }
-

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.aboutlibraries)
     alias(libs.plugins.sentry)
+    alias(libs.plugins.detekt)
 }
 
 // versionCode auto-derives from the git commit count so it bumps every commit —
@@ -36,7 +37,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             // Drives io.sentry.environment in the manifest so it's set before the
             // SDK starts session tracking (later than options.environment in code).
@@ -67,6 +68,24 @@ aboutLibraries {
     registerAndroidTasks = true
 }
 
+detekt {
+    // Static analysis (code smells, complexity, anti-patterns). Formatting is
+    // owned by Spotless/ktlint, so the detekt-formatting ruleset is NOT used.
+    buildUponDefaultConfig = true
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    // Pre-existing findings are grandfathered via a baseline so detekt only
+    // fails on NEW issues. Regenerate with: ./gradlew detektBaseline
+    baseline = rootProject.file("config/detekt/baseline.xml")
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = "17"
+    reports {
+        html.required.set(true)
+        sarif.required.set(false)
+        md.required.set(false)
+    }
+}
 
 dependencies {
     // Compose

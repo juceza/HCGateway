@@ -1,4 +1,5 @@
-from .routes import v2, limiter
+from .routes import limiter, v2
+
 
 def init_app(app):
     limiter.init_app(app)

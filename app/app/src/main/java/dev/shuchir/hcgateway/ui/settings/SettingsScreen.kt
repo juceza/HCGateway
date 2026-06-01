@@ -8,34 +8,34 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -92,8 +92,11 @@ fun SettingsScreen(
                     ) { Text("Full 30-day") }
                 }
                 Text(
-                    if (settings.fullSyncMode) "Re-reads all data from the past 30 days every sync"
-                    else "Only syncs changes since last sync",
+                    if (settings.fullSyncMode) {
+                        "Re-reads all data from the past 30 days every sync"
+                    } else {
+                        "Only syncs changes since last sync"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
@@ -152,14 +155,13 @@ fun SettingsScreen(
                 enter = expandVertically(autoSyncSpatial) + fadeIn(autoSyncEffects),
                 exit = shrinkVertically(autoSyncSpatial) + fadeOut(autoSyncEffects),
             ) {
-            SettingsItem(title = "Auto-sync interval") {
-                SyncIntervalPicker(
-                    currentMinutes = settings.syncInterval,
-                    onIntervalChange = viewModel::updateSyncInterval,
-                )
+                SettingsItem(title = "Auto-sync interval") {
+                    SyncIntervalPicker(
+                        currentMinutes = settings.syncInterval,
+                        onIntervalChange = viewModel::updateSyncInterval,
+                    )
+                }
             }
-            }
-
 
             // --- Privacy section ---
             SectionLabel("Privacy")
@@ -200,7 +202,6 @@ fun SettingsScreen(
                 }
             }
 
-
             // --- About section ---
             SectionLabel("About")
 
@@ -224,7 +225,9 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable {
                         val intent = Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS")
-                        try { context.startActivity(intent) } catch (_: Exception) {
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
                             // Fallback: open Health Connect app
                             val fallback = context.packageManager.getLaunchIntentForPackage("com.google.android.apps.healthdata")
                             fallback?.let { context.startActivity(it) }
@@ -449,7 +452,7 @@ private fun SyncIntervalPicker(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         if (parsed != null) showCustomInput = false
-                    }
+                    },
                 ),
                 supportingText = {
                     Text(
@@ -457,7 +460,7 @@ private fun SyncIntervalPicker(
                             isError -> "Invalid format. Use e.g. 30m, 2h, 1d (min 15m, max 7d)"
                             parsed != null -> "Set to ${formatInterval(parsed)}"
                             else -> "Use m (minutes), h (hours), d (days)"
-                        }
+                        },
                     )
                 },
             )

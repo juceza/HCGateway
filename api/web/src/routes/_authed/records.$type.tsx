@@ -1,30 +1,34 @@
-import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { TriangleAlert } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
 
-import { JsonDialog } from "@/components/JsonDialog";
-import { RecordChart } from "@/components/RecordChart";
-import { RecordTable } from "@/components/RecordTable";
-import { WindowSelector } from "@/components/WindowSelector";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import type { HealthRecord } from "@/lib/api";
-import { useRecords } from "@/lib/queries";
-import { getRecordType } from "@/lib/recordTypes";
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+
+import { TriangleAlert } from 'lucide-react';
+
+import type { HealthRecord } from '@/lib/api';
+import { useRecords } from '@/lib/queries';
 import {
   isWideWindow,
   normalizeWindowSearch,
   pageCount,
   paginate,
   presetForWindow,
+  type SortDirection,
   sortRows,
   toTableRows,
   toTimeWindow,
   windowForPreset,
-  type SortDirection,
   type WindowPreset,
   type WindowSearch,
-} from "@/lib/recordDetail";
+} from '@/lib/recordDetail';
+import { getRecordType } from '@/lib/recordTypes';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+
+import { JsonDialog } from '@/components/JsonDialog';
+import { RecordChart } from '@/components/RecordChart';
+import { RecordTable } from '@/components/RecordTable';
+import { WindowSelector } from '@/components/WindowSelector';
 
 // Per-type detail view. The view is bound to a typed `start`/`end`
 // search-param window (default last 7 days): the day/week/month
@@ -40,12 +44,12 @@ interface RawWindowSearch {
   end?: string;
 }
 
-export const Route = createFileRoute("/_authed/records/$type")({
+export const Route = createFileRoute('/_authed/records/$type')({
   // Pass through only string bounds; both are optional so links into this route
   // need not supply a window. The 7-day default is applied at read time below.
   validateSearch: (search: Record<string, unknown>): RawWindowSearch => ({
-    start: typeof search.start === "string" ? search.start : undefined,
-    end: typeof search.end === "string" ? search.end : undefined,
+    start: typeof search.start === 'string' ? search.start : undefined,
+    end: typeof search.end === 'string' ? search.end : undefined,
   }),
   component: RecordDetail,
 });
@@ -60,13 +64,16 @@ function RecordDetail() {
   // doesn't drift each render and re-key `useRecords` into a refetch loop.
   const window: WindowSearch = useMemo(
     () => normalizeWindowSearch(raw, new Date()),
+    // Intentionally key only on the two search fields, not the whole `raw`
+    // object, so the default's "now" doesn't drift and refetch-loop each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [raw.start, raw.end],
   );
 
   const meta = getRecordType(type);
   const { data, isLoading, isError } = useRecords(type, toTimeWindow(window));
 
-  const [sort, setSort] = useState<SortDirection>("desc");
+  const [sort, setSort] = useState<SortDirection>('desc');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<HealthRecord | null>(null);
 
@@ -92,15 +99,15 @@ function RecordDetail() {
 
   function toggleSort() {
     setPage(1);
-    setSort((s) => (s === "asc" ? "desc" : "asc"));
+    setSort((s) => (s === 'asc' ? 'desc' : 'asc'));
   }
 
   const hasData = sortedRows.length > 0;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <h1 data-testid="record-detail" className="text-2xl font-semibold">
+    <main className='mx-auto w-full max-w-5xl px-4 py-8'>
+      <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+        <h1 data-testid='record-detail' className='text-2xl font-semibold'>
           {meta?.label ?? type}
         </h1>
         <WindowSelector active={activePreset} onSelect={selectPreset} />
@@ -108,9 +115,9 @@ function RecordDetail() {
 
       {wide && (
         <Alert
-          variant="warning"
-          data-testid="wide-window-notice"
-          className="mb-6"
+          variant='warning'
+          data-testid='wide-window-notice'
+          className='mb-6'
         >
           <TriangleAlert />
           <AlertTitle>Wide window on a high-frequency type</AlertTitle>
@@ -123,31 +130,31 @@ function RecordDetail() {
       )}
 
       {isLoading && (
-        <div data-testid="detail-skeleton" className="flex flex-col gap-4">
-          <div className="h-64 animate-pulse rounded-xl bg-muted" />
-          <div className="h-40 animate-pulse rounded-xl bg-muted" />
+        <div data-testid='detail-skeleton' className='flex flex-col gap-4'>
+          <div className='bg-muted h-64 animate-pulse rounded-xl' />
+          <div className='bg-muted h-40 animate-pulse rounded-xl' />
         </div>
       )}
 
       {isError && (
-        <p data-testid="detail-error" className="text-sm text-destructive">
+        <p data-testid='detail-error' className='text-destructive text-sm'>
           Couldn’t load this data. Please try again.
         </p>
       )}
 
       {!isLoading && !isError && !hasData && (
-        <p data-testid="detail-empty" className="text-muted-foreground">
+        <p data-testid='detail-empty' className='text-muted-foreground'>
           No records in this window. Try widening the time window.
         </p>
       )}
 
       {!isLoading && !isError && hasData && (
-        <div className="flex flex-col gap-6">
+        <div className='flex flex-col gap-6'>
           <p
-            data-testid="count-summary"
-            className="text-sm text-muted-foreground"
+            data-testid='count-summary'
+            className='text-muted-foreground text-sm'
           >
-            {sortedRows.length} {sortedRows.length === 1 ? "record" : "records"}{" "}
+            {sortedRows.length} {sortedRows.length === 1 ? 'record' : 'records'}{' '}
             in this window
           </p>
 
@@ -166,29 +173,29 @@ function RecordDetail() {
             onView={setSelected}
           />
 
-          <div className="flex items-center justify-between gap-4">
+          <div className='flex items-center justify-between gap-4'>
             <p
-              data-testid="page-info"
-              className="text-sm text-muted-foreground"
+              data-testid='page-info'
+              className='text-muted-foreground text-sm'
             >
               Page {Math.min(page, totalPages)} of {totalPages}
             </p>
-            <div className="flex gap-2">
+            <div className='flex gap-2'>
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                data-testid="page-prev"
+                type='button'
+                size='sm'
+                variant='outline'
+                data-testid='page-prev'
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 Previous
               </Button>
               <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                data-testid="page-next"
+                type='button'
+                size='sm'
+                variant='outline'
+                data-testid='page-next'
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >

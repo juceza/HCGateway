@@ -12,8 +12,8 @@ compromise (env + DB), which is an inherent limitation of decrypting on the
 server without the user's password at request time.
 """
 
-import os
 import hashlib
+import os
 
 from cryptography.fernet import Fernet
 
@@ -23,8 +23,8 @@ def _kek() -> Fernet:
     if not key:
         raise RuntimeError(
             "DATA_MASTER_KEY is not set. Generate one with: "
-            "python -c \"from cryptography.fernet import Fernet; "
-            "print(Fernet.generate_key().decode())\""
+            'python -c "from cryptography.fernet import Fernet; '
+            'print(Fernet.generate_key().decode())"'
         )
     return Fernet(key.encode())
 

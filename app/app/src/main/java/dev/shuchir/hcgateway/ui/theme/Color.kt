@@ -48,18 +48,20 @@ data class ExtendedColors(
     val onSuccessContainer: Color,
 )
 
-val LightExtendedColors = ExtendedColors(
-    success = Color(0xFF386A20),
-    onSuccess = Color(0xFFFFFFFF),
-    successContainer = Color(0xFFB8F397),
-    onSuccessContainer = Color(0xFF1B5E20),
-)
+val LightExtendedColors =
+    ExtendedColors(
+        success = Color(0xFF386A20),
+        onSuccess = Color(0xFFFFFFFF),
+        successContainer = Color(0xFFB8F397),
+        onSuccessContainer = Color(0xFF1B5E20),
+    )
 
-val DarkExtendedColors = ExtendedColors(
-    success = Color(0xFF9DD67D),
-    onSuccess = Color(0xFF0E3900),
-    successContainer = Color(0xFF205107),
-    onSuccessContainer = Color(0xFFB8F397),
-)
+val DarkExtendedColors =
+    ExtendedColors(
+        success = Color(0xFF9DD67D),
+        onSuccess = Color(0xFF0E3900),
+        successContainer = Color(0xFF205107),
+        onSuccessContainer = Color(0xFFB8F397),
+    )
 
 val LocalExtendedColors = staticCompositionLocalOf { LightExtendedColors }

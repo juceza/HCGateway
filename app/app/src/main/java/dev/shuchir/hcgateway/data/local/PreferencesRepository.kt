@@ -9,47 +9,56 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PreferencesRepository @Inject constructor(
+class PreferencesRepository
+@Inject
+constructor(
     private val dataStore: DataStore<Preferences>,
     private val tokenCrypto: TokenCrypto,
 ) {
-    val settings: Flow<UserSettings> = dataStore.data.map { prefs ->
-        UserSettings(
-            token = tokenCrypto.decrypt(prefs[UserPreferences.TOKEN] ?: ""),
-            refreshToken = tokenCrypto.decrypt(prefs[UserPreferences.REFRESH_TOKEN] ?: ""),
-            apiBase = prefs[UserPreferences.API_BASE] ?: "",
-            username = prefs[UserPreferences.USERNAME] ?: "",
-            themeMode = prefs[UserPreferences.THEME_MODE] ?: "system",
-            syncInterval = prefs[UserPreferences.SYNC_INTERVAL] ?: 15,
-            fullSyncMode = prefs[UserPreferences.FULL_SYNC_MODE] ?: false,
-            lastSync = prefs[UserPreferences.LAST_SYNC] ?: 0L,
-            changesToken = prefs[UserPreferences.CHANGES_TOKEN] ?: "",
-            sentryEnabled = prefs[UserPreferences.SENTRY_ENABLED] ?: false,
-            fcmToken = prefs[UserPreferences.FCM_TOKEN] ?: "",
-            useHttps = prefs[UserPreferences.USE_HTTPS] ?: true,
-            lastSyncResults = prefs[UserPreferences.LAST_SYNC_RESULTS] ?: "",
-            startOnBoot = prefs[UserPreferences.START_ON_BOOT] ?: true,
-            autoSyncEnabled = prefs[UserPreferences.AUTO_SYNC_ENABLED] ?: true,
-        )
-    }
+    val settings: Flow<UserSettings> =
+        dataStore.data.map { prefs ->
+            UserSettings(
+                token = tokenCrypto.decrypt(prefs[UserPreferences.TOKEN] ?: ""),
+                refreshToken = tokenCrypto.decrypt(prefs[UserPreferences.REFRESH_TOKEN] ?: ""),
+                apiBase = prefs[UserPreferences.API_BASE] ?: "",
+                username = prefs[UserPreferences.USERNAME] ?: "",
+                themeMode = prefs[UserPreferences.THEME_MODE] ?: "system",
+                syncInterval = prefs[UserPreferences.SYNC_INTERVAL] ?: 15,
+                fullSyncMode = prefs[UserPreferences.FULL_SYNC_MODE] ?: false,
+                lastSync = prefs[UserPreferences.LAST_SYNC] ?: 0L,
+                changesToken = prefs[UserPreferences.CHANGES_TOKEN] ?: "",
+                sentryEnabled = prefs[UserPreferences.SENTRY_ENABLED] ?: false,
+                fcmToken = prefs[UserPreferences.FCM_TOKEN] ?: "",
+                useHttps = prefs[UserPreferences.USE_HTTPS] ?: true,
+                lastSyncResults = prefs[UserPreferences.LAST_SYNC_RESULTS] ?: "",
+                startOnBoot = prefs[UserPreferences.START_ON_BOOT] ?: true,
+                autoSyncEnabled = prefs[UserPreferences.AUTO_SYNC_ENABLED] ?: true,
+            )
+        }
 
-    val isLoggedIn: Flow<Boolean> = dataStore.data.map { prefs ->
-        !prefs[UserPreferences.TOKEN].isNullOrBlank()
-    }
+    val isLoggedIn: Flow<Boolean> =
+        dataStore.data.map { prefs ->
+            !prefs[UserPreferences.TOKEN].isNullOrBlank()
+        }
 
-    val themeMode: Flow<String> = dataStore.data.map { prefs ->
-        prefs[UserPreferences.THEME_MODE] ?: "system"
-    }
+    val themeMode: Flow<String> =
+        dataStore.data.map { prefs ->
+            prefs[UserPreferences.THEME_MODE] ?: "system"
+        }
 
-    val onboardingComplete: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[UserPreferences.ONBOARDING_COMPLETE] ?: false
-    }
+    val onboardingComplete: Flow<Boolean> =
+        dataStore.data.map { prefs ->
+            prefs[UserPreferences.ONBOARDING_COMPLETE] ?: false
+        }
 
     suspend fun setOnboardingComplete() {
         dataStore.edit { it[UserPreferences.ONBOARDING_COMPLETE] = true }
     }
 
-    suspend fun saveTokens(token: String, refreshToken: String) {
+    suspend fun saveTokens(
+        token: String,
+        refreshToken: String,
+    ) {
         val encToken = tokenCrypto.encrypt(token)
         val encRefresh = tokenCrypto.encrypt(refreshToken)
         dataStore.edit { prefs ->
@@ -58,7 +67,11 @@ class PreferencesRepository @Inject constructor(
         }
     }
 
-    suspend fun saveLoginInfo(apiBase: String, username: String, useHttps: Boolean) {
+    suspend fun saveLoginInfo(
+        apiBase: String,
+        username: String,
+        useHttps: Boolean,
+    ) {
         dataStore.edit { prefs ->
             prefs[UserPreferences.API_BASE] = apiBase
             prefs[UserPreferences.USERNAME] = username

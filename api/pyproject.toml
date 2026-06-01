@@ -24,7 +24,34 @@ package = false
 dev = [
     "pytest==8.3.4",
     "pytest-cov==6.0.0",
+    "ruff>=0.8.0",
+    "black>=24.0.0",
+    "isort>=5.13.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# Ruff — linting only (formatting is delegated to black/isort below). The `I`
+# (import-sort) rule is intentionally not selected to avoid conflicting with
+# isort, and E501 is ignored since black is the line-length authority.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = ["E501"]
+
+# Black — formatting authority. Exclude web/node_modules (vendored JS deps ship
+# stray .py files that black would otherwise try to reformat on full-repo runs).
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = "web/node_modules"
+
+# isort — import ordering, black-compatible profile (runs before black).
+[tool.isort]
+profile = "black"
+line_length = 100
+extend_skip_glob = ["web/node_modules/*"]

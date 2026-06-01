@@ -1,0 +1,110 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun HomeScreen( onNavigateToSettings: () -&gt; Unit, onNavigateToPermissions: (() -&gt; Unit)? = null, viewModel: HomeViewModel = hiltViewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:RecordSerializer.kt$RecordSerializer$private fun serializeRecord(record: Record): JsonObject</ID>
+    <ID>InstanceOfCheckForException:HealthConnectRepository.kt$HealthConnectRepository$e is IllegalArgumentException</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun HomeScreen( onNavigateToSettings: () -&gt; Unit, onNavigateToPermissions: (() -&gt; Unit)? = null, viewModel: HomeViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:LicensesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun LicensesScreen(onBack: () -&gt; Unit)</ID>
+    <ID>LongMethod:LoginScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun LoginScreen( viewModel: LoginViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:PermissionOnboardingScreen.kt$@OptIn(ExperimentalMaterial3ExpressiveApi::class) @Composable fun PermissionOnboardingScreen( onNext: () -&gt; Unit, viewModel: PermissionOnboardingViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:RecordSerializer.kt$RecordSerializer$private fun serializeRecord(record: Record): JsonObject</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun SyncIntervalPicker( currentMinutes: Int, onIntervalChange: (Int) -&gt; Unit, )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun SettingsScreen( onBack: () -&gt; Unit, onNavigateToLicenses: () -&gt; Unit = {}, viewModel: SettingsViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:SyncRepository.kt$SyncRepository$private suspend fun fullSync( startTime: Instant, endTime: Instant, typeResults: MutableList&lt;TypeSyncResult&gt;, failedTypes: MutableList&lt;String&gt; = mutableListOf(), ): Int</ID>
+    <ID>LongMethod:SyncRepository.kt$SyncRepository$private suspend fun performSync( customStartDate: LocalDate?, customEndDate: LocalDate?, ): Boolean</ID>
+    <ID>MatchingDeclarationName:PermissionOnboardingScreen.kt$PermissionOnboardingViewModel : ViewModel</ID>
+    <ID>MatchingDeclarationName:RecordTypes.kt$RecordTypeInfo</ID>
+    <ID>MaxLineLength:HealthConnectRepository.kt$HealthConnectRepository$private fun recordClassName(kClass: KClass&lt;out Record&gt;): String</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Column</ID>
+    <ID>MaxLineLength:HomeScreen.kt$DataOverviewTable(pendingCounts, serverCounts, hasEverSynced = settings.lastSync &gt; 0)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("Error: ${errorState.message}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("New", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.widthIn(min = 32.dp))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("Server", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.widthIn(min = 40.dp))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("Sync", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 12.dp))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("Tap to retry", style = MaterialTheme.typography.labelSmall, color = statusContentColor.copy(alpha = 0.5f))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$Text("User: ${settings.username}", style = MaterialTheme.typography.bodySmall, color = statusContentColor.copy(alpha = 0.7f))</ID>
+    <ID>MaxLineLength:HomeScreen.kt$syncingState != null &amp;&amp; syncingState.totalTypes &gt; 0 -&gt; syncingState.typesCompleted.toFloat() / syncingState.totalTypes</ID>
+    <ID>MaxLineLength:LoginScreen.kt$visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()</ID>
+    <ID>MaxLineLength:PermissionOnboardingScreen.kt$Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:PermissionOnboardingScreen.kt$context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED</ID>
+    <ID>MaxLineLength:PermissionOnboardingScreen.kt$icon = { Icon(Icons.Default.EnergySavingsLeaf, contentDescription = null, modifier = Modifier.size(24.dp)) }</ID>
+    <ID>MaxLineLength:PermissionOnboardingScreen.kt$icon = { Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(24.dp)) }</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Icon(Icons.Default.BugReport, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Error reporting", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Logout", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Open source licenses", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$Text("Version ${dev.shuchir.hcgateway.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$colorFilter = if (MaterialTheme.colorScheme.surface.luminance() &lt; 0.5f) ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant) else null</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$listOf("system" to "System", "light" to "Light", "dark" to "Dark")</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$val fallback = context.packageManager.getLaunchIntentForPackage("com.google.android.apps.healthdata")</ID>
+    <ID>MaxLineLength:SettingsScreen.kt$val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ShuchirJ/HCGateway/issues"))</ID>
+    <ID>MaxLineLength:SyncNotificationManager.kt$SyncNotificationManager$NotificationChannel(SYNC_RESULT_CHANNEL_ID, "Sync Results", NotificationManager.IMPORTANCE_DEFAULT)</ID>
+    <ID>MaxLineLength:SyncNotificationManager.kt$SyncNotificationManager$manager.notify(NOTIFICATION_ID, buildNotification(text, state.typesCompleted, state.totalTypes, showCancel = true))</ID>
+    <ID>MaxLineLength:SyncNotificationManager.kt$SyncNotificationManager$state.recordsSynced &gt; 0 -&gt; "${state.typesCompleted}/${state.totalTypes} types · ${state.recordsSynced} records"</ID>
+    <ID>MaxLineLength:SyncRepository.kt$SyncRepository$private</ID>
+    <ID>MaxLineLength:UserPreferences.kt$UserPreferences$val LAST_SYNC_RESULTS = stringPreferencesKey("last_sync_results") // JSON: [{"typeName":"Steps","recordCount":38},...]</ID>
+    <ID>MaxLineLength:WarningActionCard.kt$Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))</ID>
+    <ID>MaxLineLength:WarningActionCard.kt$Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)</ID>
+    <ID>MayBeConst:Theme.kt$private val ThemeTransitionDuration = 200</ID>
+    <ID>NestedBlockDepth:HealthConnectRepository.kt$HealthConnectRepository$suspend fun getChanges(token: String): ChangeResult</ID>
+    <ID>NestedBlockDepth:RecordSerializer.kt$RecordSerializer$private fun serializeRecord(record: Record): JsonObject</ID>
+    <ID>ReturnCount:AuthAuthenticator.kt$AuthAuthenticator$override fun authenticate( route: Route?, response: Response, ): Request?</ID>
+    <ID>ReturnCount:AuthInterceptor.kt$AuthInterceptor$override fun intercept(chain: Interceptor.Chain): Response</ID>
+    <ID>ReturnCount:DynamicBaseUrlInterceptor.kt$DynamicBaseUrlInterceptor$override fun intercept(chain: Interceptor.Chain): Response</ID>
+    <ID>ReturnCount:HealthConnectRepository.kt$HealthConnectRepository$suspend fun getChanges(token: String): ChangeResult</ID>
+    <ID>ReturnCount:HealthConnectRepository.kt$HealthConnectRepository$suspend fun hasAllPermissions(): Boolean</ID>
+    <ID>ReturnCount:SettingsScreen.kt$private fun parseIntervalInput(input: String): Int?</ID>
+    <ID>ReturnCount:SyncRepository.kt$SyncRepository$private suspend fun performSync( customStartDate: LocalDate?, customEndDate: LocalDate?, ): Boolean</ID>
+    <ID>ReturnCount:TokenCrypto.kt$TokenCrypto$fun decrypt(stored: String): String</ID>
+    <ID>SwallowedException:AuthAuthenticator.kt$AuthAuthenticator$e: Exception</ID>
+    <ID>SwallowedException:HCGatewayFirebaseService.kt$HCGatewayFirebaseService$e: Exception</ID>
+    <ID>SwallowedException:HealthConnectModule.kt$HealthConnectModule$e: Exception</ID>
+    <ID>SwallowedException:LoginViewModel.kt$LoginViewModel$e: Exception</ID>
+    <ID>ThrowsCount:HealthConnectRepository.kt$HealthConnectRepository$suspend fun getChanges(token: String): ChangeResult</ID>
+    <ID>ThrowsCount:HealthConnectRepository.kt$HealthConnectRepository$suspend fun getChangesToken(): String</ID>
+    <ID>ThrowsCount:SyncRepository.kt$SyncRepository$private suspend fun fullSync( startTime: Instant, endTime: Instant, typeResults: MutableList&lt;TypeSyncResult&gt;, failedTypes: MutableList&lt;String&gt; = mutableListOf(), ): Int</ID>
+    <ID>TooGenericExceptionCaught:AuthAuthenticator.kt$AuthAuthenticator$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AuthRepository.kt$AuthRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HCGatewayFirebaseService.kt$HCGatewayFirebaseService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HealthConnectModule.kt$HealthConnectModule$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HealthConnectRepository.kt$HealthConnectRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LoginViewModel.kt$LoginViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SyncRepository.kt$SyncRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SyncScheduler.kt$SyncScheduler$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SyncWorker.kt$SyncWorker$e: Exception</ID>
+    <ID>TooManyFunctions:HealthConnectRepository.kt$HealthConnectRepository</ID>
+    <ID>TooManyFunctions:HomeViewModel.kt$HomeViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:PreferencesRepository.kt$PreferencesRepository</ID>
+    <ID>TooManyFunctions:SyncRepository.kt$SyncRepository</ID>
+    <ID>UnusedPrivateProperty:HCGatewayFirebaseService.kt$HCGatewayFirebaseService$val records = gson.fromJson&lt;List&lt;Map&lt;String, Any&gt;&gt;&gt;( payload, object : TypeToken&lt;List&lt;Map&lt;String, Any&gt;&gt;&gt;() {}.type, )</ID>
+    <ID>UnusedPrivateProperty:HealthConnectRepository.kt$HealthConnectRepository$private val gson: Gson</ID>
+    <ID>UnusedPrivateProperty:NavGraph.kt$val context = LocalContext.current</ID>
+    <ID>UseCheckOrError:HealthConnectRepository.kt$HealthConnectRepository$throw IllegalStateException("Health Connect not available")</ID>
+    <ID>UseCheckOrError:HealthConnectRepository.kt$HealthConnectRepository$throw IllegalStateException("getChangesToken exhausted retries")</ID>
+    <ID>WildcardImport:HomeScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:HomeScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:HomeScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:LicensesScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:LicensesScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:LicensesScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:LoginScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:NavGraph.kt$import androidx.compose.animation.*</ID>
+    <ID>WildcardImport:PermissionOnboardingScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:PermissionOnboardingScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:PermissionOnboardingScreen.kt$import androidx.compose.runtime.*</ID>
+    <ID>WildcardImport:RecordSerializer.kt$import androidx.health.connect.client.records.*</ID>
+    <ID>WildcardImport:RecordSerializer.kt$import androidx.health.connect.client.units.*</ID>
+    <ID>WildcardImport:RecordTypes.kt$import androidx.health.connect.client.records.*</ID>
+    <ID>WildcardImport:SettingsScreen.kt$import androidx.compose.foundation.layout.*</ID>
+    <ID>WildcardImport:SettingsScreen.kt$import androidx.compose.material3.*</ID>
+    <ID>WildcardImport:SettingsScreen.kt$import androidx.compose.runtime.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -11,7 +11,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SystemSettings @Inject constructor(
+class SystemSettings
+@Inject
+constructor(
     @ApplicationContext private val context: Context,
 ) {
     fun isBatteryOptimized(): Boolean {
@@ -37,13 +39,19 @@ class SystemSettings @Inject constructor(
         )
     }
 
-    private fun tryStart(primary: Intent, fallback: Intent) {
+    private fun tryStart(
+        primary: Intent,
+        fallback: Intent,
+    ) {
         primary.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             context.startActivity(primary)
         } catch (_: Exception) {
-            try { context.startActivity(fallback) } catch (_: Exception) { }
+            try {
+                context.startActivity(fallback)
+            } catch (_: Exception) {
+            }
         }
     }
 

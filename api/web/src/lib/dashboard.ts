@@ -15,20 +15,20 @@
 //    Android serializer), tolerating malformed records by returning `[]`.
 //  - `formatValue` renders a value with its friendly unit.
 
-import type { HealthRecord } from "./api";
+import type { HealthRecord } from './api';
 import {
   RECORD_CATEGORIES,
-  recordTypesByCategory,
   type RecordCategory,
   type RecordTypeMeta,
-} from "./recordTypes";
+  recordTypesByCategory,
+} from './recordTypes';
 import {
   bucketSeries,
-  deriveGranularity,
   type ChartPoint,
+  deriveGranularity,
   type Sample,
   type TimeWindow,
-} from "./transforms";
+} from './transforms';
 
 /** A record type present in `/counts` with a positive count. */
 export interface PopulatedType {
@@ -61,7 +61,7 @@ export function groupPopulatedTypes(
     const types: PopulatedType[] = [];
     for (const meta of recordTypesByCategory(category)) {
       const count = counts[meta.name];
-      if (typeof count === "number" && count > 0) {
+      if (typeof count === 'number' && count > 0) {
         types.push({ meta, count });
       }
     }
@@ -84,25 +84,25 @@ export function shortWindow(
  * (HeartRate, SleepSession) are handled explicitly in `extractSamples`.
  */
 const VALUE_FIELD: Readonly<Record<string, string>> = {
-  ActiveCaloriesBurned: "energy",
-  TotalCaloriesBurned: "energy",
-  BodyFat: "percentage",
-  RestingHeartRate: "beatsPerMinute",
-  Steps: "count",
-  Weight: "weight",
+  ActiveCaloriesBurned: 'energy',
+  TotalCaloriesBurned: 'energy',
+  BodyFat: 'percentage',
+  RestingHeartRate: 'beatsPerMinute',
+  Steps: 'count',
+  Weight: 'weight',
 };
 
 /** Charted types whose sparkline keeps per-bucket min/max. */
 const AMPLITUDE_TYPES: ReadonlySet<string> = new Set([
-  "HeartRate",
-  "RestingHeartRate",
+  'HeartRate',
+  'RestingHeartRate',
 ]);
 
 /** Read a finite number at `key` of an unknown object, or `null`. */
 function numberAt(obj: unknown, key: string): number | null {
-  if (obj && typeof obj === "object" && key in obj) {
+  if (obj && typeof obj === 'object' && key in obj) {
     const v = (obj as Record<string, unknown>)[key];
-    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
   }
   return null;
 }
@@ -122,21 +122,21 @@ export function extractSamples(
   record: HealthRecord,
   typeName: string,
 ): Sample[] {
-  if (typeName === "HeartRate") {
+  if (typeName === 'HeartRate') {
     const samples = record.data.samples;
     if (!Array.isArray(samples)) return [];
     return samples.flatMap((s) => {
-      const value = numberAt(s, "beatsPerMinute");
+      const value = numberAt(s, 'beatsPerMinute');
       const time =
-        s && typeof s === "object"
+        s && typeof s === 'object'
           ? (s as Record<string, unknown>).time
           : undefined;
-      return value !== null && typeof time === "string"
+      return value !== null && typeof time === 'string'
         ? [{ start: time, value }]
         : [];
     });
   }
-  if (typeName === "SleepSession") {
+  if (typeName === 'SleepSession') {
     if (!record.end) return [];
     const hours =
       (new Date(record.end).getTime() - new Date(record.start).getTime()) /
@@ -194,6 +194,6 @@ export function latestValue(
 export function formatValue(value: number, meta: RecordTypeMeta): string {
   const rounded =
     Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
-  const num = rounded.toLocaleString("en-US");
+  const num = rounded.toLocaleString('en-US');
   return meta.unit ? `${num} ${meta.unit}` : num;
 }

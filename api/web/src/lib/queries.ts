@@ -17,10 +17,10 @@
 // V1 is strictly read-only, so there is **no cache invalidation** anywhere
 // windows simply key their own cache entries.
 
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { QueryClient, useQuery } from '@tanstack/react-query';
 
-import { fetchRecords, getCounts, type HealthRecord } from "./api";
-import { buildTimeWindowQuery, type TimeWindow } from "./transforms";
+import { fetchRecords, getCounts, type HealthRecord } from './api';
+import { buildTimeWindowQuery, type TimeWindow } from './transforms';
 
 /** ~30s window for `/counts`. */
 const COUNTS_STALE_TIME_MS = 30_000;
@@ -47,7 +47,7 @@ export const queryClient = new QueryClient({
  */
 export function useCounts() {
   return useQuery({
-    queryKey: ["counts"],
+    queryKey: ['counts'],
     queryFn: getCounts,
     staleTime: COUNTS_STALE_TIME_MS,
   });
@@ -63,7 +63,7 @@ export function useCounts() {
 export function useRecords(displayName: string, window: TimeWindow) {
   const query = buildTimeWindowQuery(window);
   return useQuery<HealthRecord[]>({
-    queryKey: ["records", displayName, query.start?.$gte, query.start?.$lte],
+    queryKey: ['records', displayName, query.start?.$gte, query.start?.$lte],
     queryFn: () => fetchRecords(displayName, query),
     staleTime: RECORDS_STALE_TIME_MS,
   });

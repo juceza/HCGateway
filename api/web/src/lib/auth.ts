@@ -16,7 +16,7 @@ export interface AuthState {
   username: string;
 }
 
-const STORAGE_KEY = "hcgateway.auth";
+const STORAGE_KEY = 'hcgateway.auth';
 
 /** Read the persisted session, or `null` when logged out / unparseable. */
 export function getAuth(): AuthState | null {
@@ -25,10 +25,10 @@ export function getAuth(): AuthState | null {
   try {
     const parsed = JSON.parse(raw) as Partial<AuthState>;
     if (
-      typeof parsed?.token === "string" &&
-      typeof parsed.refresh === "string" &&
-      typeof parsed.expiry === "string" &&
-      typeof parsed.username === "string"
+      typeof parsed?.token === 'string' &&
+      typeof parsed.refresh === 'string' &&
+      typeof parsed.expiry === 'string' &&
+      typeof parsed.username === 'string'
     ) {
       return parsed as AuthState;
     }

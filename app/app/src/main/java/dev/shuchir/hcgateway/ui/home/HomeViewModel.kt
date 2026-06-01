@@ -1,10 +1,10 @@
 package dev.shuchir.hcgateway.ui.home
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.shuchir.hcgateway.data.local.PreferencesRepository
 import dev.shuchir.hcgateway.data.local.UserSettings
@@ -30,7 +30,9 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
+class HomeViewModel
+@Inject
+constructor(
     private val preferencesRepository: PreferencesRepository,
     private val syncRepository: SyncRepository,
     private val healthConnectRepository: HealthConnectRepository,
@@ -38,9 +40,9 @@ class HomeViewModel @Inject constructor(
     private val networkMonitor: NetworkMonitor,
     private val systemSettings: SystemSettings,
 ) : ViewModel() {
-
-    val settings: StateFlow<UserSettings> = preferencesRepository.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserSettings())
+    val settings: StateFlow<UserSettings> =
+        preferencesRepository.settings
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserSettings())
 
     val syncState: StateFlow<SyncState> = syncRepository.syncState
 
@@ -76,20 +78,27 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             syncRepository.syncState.collect { state ->
                 when (state) {
-                    is SyncState.Done -> _serverReachable.value = true
-                    is SyncState.Error -> checkServerConnection()
+                    is SyncState.Done -> {
+                        _serverReachable.value = true
+                    }
+
+                    is SyncState.Error -> {
+                        checkServerConnection()
+                    }
+
                     else -> {}
                 }
             }
         }
         // Re-check when app returns to foreground
-        lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                checkServerConnection()
-                checkPermissions()
-                checkBatteryOptimization()
+        lifecycleObserver =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    checkServerConnection()
+                    checkPermissions()
+                    checkBatteryOptimization()
+                }
             }
-        }
         ProcessLifecycleOwner.get().lifecycle.addObserver(lifecycleObserver)
         // Re-check when network state changes
         viewModelScope.launch {
@@ -111,20 +120,21 @@ class HomeViewModel @Inject constructor(
                 _serverReachable.value = false
                 return@launch
             }
-            val reachable = try {
-                withTimeout(5000) {
-                    val response = apiService.refresh(RefreshRequest(settings.refreshToken))
-                    if (response.isSuccessful && response.body() != null) {
-                        val body = response.body()!!
-                        preferencesRepository.saveTokens(body.token, body.refresh)
-                        true
-                    } else {
-                        false
+            val reachable =
+                try {
+                    withTimeout(5000) {
+                        val response = apiService.refresh(RefreshRequest(settings.refreshToken))
+                        if (response.isSuccessful && response.body() != null) {
+                            val body = response.body()!!
+                            preferencesRepository.saveTokens(body.token, body.refresh)
+                            true
+                        } else {
+                            false
+                        }
                     }
+                } catch (_: Exception) {
+                    false
                 }
-            } catch (_: Exception) {
-                false
-            }
             _serverReachable.value = reachable
             if (reachable) {
                 loadServerCounts()
@@ -184,11 +194,12 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val response = apiService.getCounts()
-                _serverCounts.value = if (response.isSuccessful && response.body() != null) {
-                    response.body()!!
-                } else {
-                    _serverCounts.value ?: emptyMap()
-                }
+                _serverCounts.value =
+                    if (response.isSuccessful && response.body() != null) {
+                        response.body()!!
+                    } else {
+                        _serverCounts.value ?: emptyMap()
+                    }
             } catch (_: Exception) {
                 _serverCounts.value = _serverCounts.value ?: emptyMap()
             }
@@ -201,11 +212,12 @@ class HomeViewModel @Inject constructor(
         // Fetch server counts synchronously so we wait for the result
         try {
             val response = apiService.getCounts()
-            _serverCounts.value = if (response.isSuccessful && response.body() != null) {
-                response.body()!!
-            } else {
-                emptyMap()
-            }
+            _serverCounts.value =
+                if (response.isSuccessful && response.body() != null) {
+                    response.body()!!
+                } else {
+                    emptyMap()
+                }
         } catch (_: Exception) {
             _serverCounts.value = emptyMap()
         }
@@ -223,7 +235,10 @@ class HomeViewModel @Inject constructor(
 
     fun syncNow() = launchSync { syncRepository.sync() }
 
-    fun syncRange(startDate: LocalDate, endDate: LocalDate) = launchSync {
+    fun syncRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+    ) = launchSync {
         syncRepository.sync(startDate, endDate)
     }
 

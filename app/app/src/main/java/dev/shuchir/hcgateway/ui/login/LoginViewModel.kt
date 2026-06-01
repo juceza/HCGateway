@@ -25,12 +25,13 @@ data class LoginUiState(
 )
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(
+class LoginViewModel
+@Inject
+constructor(
     private val authRepository: AuthRepository,
     private val preferencesRepository: PreferencesRepository,
     private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
@@ -38,12 +39,13 @@ class LoginViewModel @Inject constructor(
         // Prefill saved login info (not password)
         viewModelScope.launch {
             val settings = preferencesRepository.settings.first()
-            _uiState.value = _uiState.value.copy(
-                serverAddress = settings.apiBase,
-                username = settings.username,
-                useHttps = settings.useHttps,
-                password = "",
-            )
+            _uiState.value =
+                _uiState.value.copy(
+                    serverAddress = settings.apiBase,
+                    username = settings.username,
+                    useHttps = settings.useHttps,
+                    password = "",
+                )
         }
         // Clear password only when transitioning from logged-in to logged-out
         viewModelScope.launch {
@@ -54,13 +56,14 @@ class LoginViewModel @Inject constructor(
                 } else if (wasLoggedIn) {
                     wasLoggedIn = false
                     val s = preferencesRepository.settings.first()
-                    _uiState.value = _uiState.value.copy(
-                        serverAddress = s.apiBase,
-                        username = s.username,
-                        useHttps = s.useHttps,
-                        password = "",
-                        error = null,
-                    )
+                    _uiState.value =
+                        _uiState.value.copy(
+                            serverAddress = s.apiBase,
+                            username = s.username,
+                            useHttps = s.useHttps,
+                            password = "",
+                            error = null,
+                        )
                 }
             }
         }
@@ -92,33 +95,36 @@ class LoginViewModel @Inject constructor(
         _uiState.value = state.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
-            val fcmToken = try {
-                FirebaseMessaging.getInstance().token.await()
-            } catch (e: Exception) {
-                ""
-            }
-
-            val result = authRepository.login(
-                apiBase = state.serverAddress,
-                useHttps = state.useHttps,
-                username = state.username,
-                password = state.password,
-                fcmToken = fcmToken,
-            )
-
-            _uiState.value = if (result.isSuccess) {
-                // Schedule background sync on login if enabled
-                val s = preferencesRepository.settings.first()
-                if (s.autoSyncEnabled) {
-                    syncScheduler.schedule(s.syncInterval)
+            val fcmToken =
+                try {
+                    FirebaseMessaging.getInstance().token.await()
+                } catch (e: Exception) {
+                    ""
                 }
-                _uiState.value.copy(isLoading = false, password = "")
-            } else {
-                _uiState.value.copy(
-                    isLoading = false,
-                    error = result.exceptionOrNull()?.message ?: "Login failed",
+
+            val result =
+                authRepository.login(
+                    apiBase = state.serverAddress,
+                    useHttps = state.useHttps,
+                    username = state.username,
+                    password = state.password,
+                    fcmToken = fcmToken,
                 )
-            }
+
+            _uiState.value =
+                if (result.isSuccess) {
+                    // Schedule background sync on login if enabled
+                    val s = preferencesRepository.settings.first()
+                    if (s.autoSyncEnabled) {
+                        syncScheduler.schedule(s.syncInterval)
+                    }
+                    _uiState.value.copy(isLoading = false, password = "")
+                } else {
+                    _uiState.value.copy(
+                        isLoading = false,
+                        error = result.exceptionOrNull()?.message ?: "Login failed",
+                    )
+                }
         }
     }
 }

@@ -19,13 +19,14 @@ import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
 @HiltWorker
-class SyncWorker @AssistedInject constructor(
+class SyncWorker
+@AssistedInject
+constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val syncRepository: SyncRepository,
     private val preferencesRepository: dev.shuchir.hcgateway.data.local.PreferencesRepository,
 ) : CoroutineWorker(appContext, workerParams) {
-
     override suspend fun doWork(): Result {
         // Skip if last sync was too recent (prevents duplicate sync on foreground resume)
         val settings = preferencesRepository.settings.first()
@@ -72,13 +73,15 @@ class SyncWorker @AssistedInject constructor(
     }
 
     private fun createProgressInfo(text: String): ForegroundInfo {
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle("HCGateway")
-            .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .setProgress(0, 0, true)
-            .build()
+        val notification =
+            NotificationCompat
+                .Builder(applicationContext, CHANNEL_ID)
+                .setContentTitle("HCGateway")
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setOngoing(true)
+                .setProgress(0, 0, true)
+                .build()
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ForegroundInfo(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
@@ -89,11 +92,12 @@ class SyncWorker @AssistedInject constructor(
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Sync",
-                NotificationManager.IMPORTANCE_LOW,
-            )
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Sync",
+                    NotificationManager.IMPORTANCE_LOW,
+                )
             val manager = applicationContext.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }

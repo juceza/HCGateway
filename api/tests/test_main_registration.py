@@ -46,9 +46,9 @@ def test_pure_api_when_web_dist_missing_dir(monkeypatch, tmp_path):
 
 
 def test_spa_and_api_coexist_when_web_dist_set(monkeypatch):
-    assert os.path.isdir(BUILT_DIST), (
-        f"built dist/ not found at {BUILT_DIST}; run `bun run build` in api/web"
-    )
+    assert os.path.isdir(
+        BUILT_DIST
+    ), f"built dist/ not found at {BUILT_DIST}; run `bun run build` in api/web"
     app = _reload_app(monkeypatch, BUILT_DIST)
     assert "web" in app.blueprints
 

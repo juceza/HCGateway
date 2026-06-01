@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,7 +18,6 @@ import dev.shuchir.hcgateway.data.remote.DynamicBaseUrlInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import com.google.gson.Gson
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -27,15 +27,15 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
     @Provides
     @Singleton
     fun provideGson(): Gson = Gson()
 
     @Provides
     @Singleton
-    fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
-        context.dataStore
+    fun provideDataStore(
+        @ApplicationContext context: Context,
+    ): DataStore<Preferences> = context.dataStore
 
     @Provides
     @Singleton
@@ -43,13 +43,15 @@ object AppModule {
         dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
         authAuthenticator: AuthAuthenticator,
-    ): OkHttpClient = OkHttpClient.Builder()
+    ): OkHttpClient = OkHttpClient
+        .Builder()
         .addInterceptor(dynamicBaseUrlInterceptor)
         .addInterceptor(authInterceptor)
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        })
-        .authenticator(authAuthenticator)
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BASIC
+            },
+        ).authenticator(authAuthenticator)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
@@ -57,11 +59,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideApiService(okHttpClient: OkHttpClient, gson: Gson): ApiService =
-        Retrofit.Builder()
-            .baseUrl("https://placeholder.local/") // Base URL set dynamically per-request
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
-            .create(ApiService::class.java)
+    fun provideApiService(
+        okHttpClient: OkHttpClient,
+        gson: Gson,
+    ): ApiService = Retrofit
+        .Builder()
+        .baseUrl("https://placeholder.local/") // Base URL set dynamically per-request
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .build()
+        .create(ApiService::class.java)
 }

@@ -1,0 +1,7 @@
+# Build artifacts and generated files — not source, never format.
+dist/
+coverage/
+node_modules/
+.tanstack/
+src/routeTree.gen.ts
+*.gen.ts

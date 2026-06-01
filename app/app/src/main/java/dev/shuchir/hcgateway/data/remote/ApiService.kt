@@ -8,12 +8,15 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ApiService {
-
     @POST("api/v2/login")
-    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+    suspend fun login(
+        @Body request: LoginRequest,
+    ): Response<LoginResponse>
 
     @POST("api/v2/refresh")
-    suspend fun refresh(@Body request: RefreshRequest): Response<RefreshResponse>
+    suspend fun refresh(
+        @Body request: RefreshRequest,
+    ): Response<RefreshResponse>
 
     @POST("api/v2/sync/{recordType}")
     suspend fun syncRecords(

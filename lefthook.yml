@@ -1,0 +1,72 @@
+# Lefthook — quality hooks for the HCGateway repo.
+#
+# The repo holds three projects: api/ (Python/uv Flask backend), api/web/
+# (Vite + bun React SPA) and app/ (Android/Gradle — Kotlin formatting via
+# Spotless/ktlint, static analysis via detekt). Each command uses `root:` to
+# scope the staged files to a subproject (lefthook hands paths relative to that
+# root and runs with the cwd set to it).
+#
+# Commands do NOT run in parallel (sequential default) on purpose: within the
+# same language several tools rewrite the same files (eslint/prettier,
+# ruff/isort/black) and parallelising would race on writes.
+
+# ─── pre-commit: lint + formatting (api and web) ─────────────────────────────
+pre-commit:
+  commands:
+    # Web — lint (ESLint) and formatting (Prettier).
+    web-eslint:
+      root: 'api/web/'
+      glob: '*.{js,ts,jsx,tsx}'
+      run: bunx eslint --fix {staged_files} --no-warn-ignored
+      stage_fixed: true
+
+    web-prettier:
+      root: 'api/web/'
+      glob: '*.{js,ts,jsx,tsx,json,css,md,yml,yaml}'
+      run: bunx prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+
+    # API (Python) — lint autofix (ruff) then formatting (isort then black).
+    # ruff fixes lint issues first; isort runs before black (profile=black) to
+    # avoid conflicting rewrites; black is the final formatting authority.
+    api-python:
+      root: 'api/'
+      glob: '*.py'
+      run: uv run ruff check --fix {staged_files} && uv run isort {staged_files} && uv run black {staged_files}
+      stage_fixed: true
+
+    # App (Kotlin) — format with Spotless/ktlint. Spotless has no clean per-file
+    # CLI, so it formats the whole module; once the tree is formatted this only
+    # touches edited files. stage_fixed re-stages whatever it rewrote. Runs via
+    # `sh gradlew` so it doesn't depend on the wrapper's executable bit. Static
+    # analysis (detekt) is heavier and lives in pre-push.
+    app-spotless:
+      root: 'app/'
+      glob: '*.{kt,kts}'
+      run: sh gradlew -q spotlessApply
+      stage_fixed: true
+
+# ─── commit-msg: Conventional Commits ────────────────────────────────────────
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}
+
+# ─── pre-push: tests + static analysis (api, web, app) ───────────────────────
+# Always run (independent of staged files); use explicit `cd` instead of `root:`.
+# Parallelisable: independent read-only checks.
+pre-push:
+  parallel: true
+  commands:
+    # Web tests (Vitest).
+    web-tests:
+      run: cd api/web && bun run test
+
+    # API tests (pytest).
+    api-tests:
+      run: cd api && uv run pytest -q
+
+    # App (Kotlin) — verify formatting (Spotless) and run static analysis
+    # (detekt). detekt only fails on findings not in config/detekt/baseline.xml.
+    app-checks:
+      run: cd app && sh gradlew -q spotlessCheck detekt

@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.shuchir.hcgateway.MainActivity
 import dev.shuchir.hcgateway.R
 import dev.shuchir.hcgateway.data.local.PreferencesRepository
@@ -24,12 +25,13 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncNotificationManager @Inject constructor(
+class SyncNotificationManager
+@Inject
+constructor(
     @ApplicationContext private val context: Context,
     private val syncRepository: SyncRepository,
     private val preferencesRepository: PreferencesRepository,
@@ -68,32 +70,38 @@ class SyncNotificationManager @Inject constructor(
                     val text = getNextSyncText()
                     manager.notify(NOTIFICATION_ID, buildNotification(text))
                 }
+
                 is SyncState.Syncing -> {
                     val now = System.currentTimeMillis()
                     if (now - lastNotifyTime < 1000) return@collect
                     lastNotifyTime = now
-                    val text = when {
-                        state.recordsSynced > 0 -> "${state.typesCompleted}/${state.totalTypes} types · ${state.recordsSynced} records"
-                        state.typesCompleted > 0 -> "${state.typesCompleted}/${state.totalTypes} types"
-                        else -> "Starting..."
-                    }
+                    val text =
+                        when {
+                            state.recordsSynced > 0 -> "${state.typesCompleted}/${state.totalTypes} types · ${state.recordsSynced} records"
+                            state.typesCompleted > 0 -> "${state.typesCompleted}/${state.totalTypes} types"
+                            else -> "Starting..."
+                        }
                     manager.notify(NOTIFICATION_ID, buildNotification(text, state.typesCompleted, state.totalTypes, showCancel = true))
                 }
+
                 is SyncState.Done -> {
                     val nextText = getNextSyncText()
                     manager.notify(NOTIFICATION_ID, buildNotification(nextText))
-                    val resultText = if (state.failedTypes.isNotEmpty()) {
-                        "${state.recordCount} records, ${state.failedTypes.size} failed"
-                    } else {
-                        "${state.recordCount} records"
-                    }
+                    val resultText =
+                        if (state.failedTypes.isNotEmpty()) {
+                            "${state.recordCount} records, ${state.failedTypes.size} failed"
+                        } else {
+                            "${state.recordCount} records"
+                        }
                     showResultNotification("Done", resultText)
                 }
+
                 is SyncState.Error -> {
                     val nextText = getNextSyncText()
                     manager.notify(NOTIFICATION_ID, buildNotification(nextText))
                     showResultNotification("Failed", state.message)
                 }
+
                 is SyncState.Cancelled -> {
                     val nextText = getNextSyncText()
                     manager.notify(NOTIFICATION_ID, buildNotification(nextText))
@@ -111,9 +119,11 @@ class SyncNotificationManager @Inject constructor(
         while (nextMillis < now) {
             nextMillis += settings.syncInterval * 60_000L
         }
-        val nextTime = Instant.ofEpochMilli(nextMillis)
-            .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("H:mm"))
+        val nextTime =
+            Instant
+                .ofEpochMilli(nextMillis)
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("H:mm"))
         return "Next sync: $nextTime"
     }
 
@@ -122,7 +132,8 @@ class SyncNotificationManager @Inject constructor(
         progress: Int = 0,
         max: Int = 0,
         showCancel: Boolean = false,
-    ) = NotificationCompat.Builder(context, CHANNEL_ID)
+    ) = NotificationCompat
+        .Builder(context, CHANNEL_ID)
         .setContentTitle("HCGateway")
         .setContentText(text)
         .setSmallIcon(R.mipmap.ic_launcher)
@@ -130,41 +141,49 @@ class SyncNotificationManager @Inject constructor(
         .setSilent(true)
         .setContentIntent(
             PendingIntent.getActivity(
-                context, 0,
+                context,
+                0,
                 Intent(context, MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE,
-            )
-        )
-        .apply {
+            ),
+        ).apply {
             if (max > 0) setProgress(max, progress, false)
             if (showCancel) {
-                val cancelIntent = Intent(ACTION_CANCEL_SYNC).apply {
-                    setPackage(context.packageName)
-                }
-                val cancelPending = PendingIntent.getBroadcast(
-                    context, 1, cancelIntent,
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-                )
+                val cancelIntent =
+                    Intent(ACTION_CANCEL_SYNC).apply {
+                        setPackage(context.packageName)
+                    }
+                val cancelPending =
+                    PendingIntent.getBroadcast(
+                        context,
+                        1,
+                        cancelIntent,
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    )
                 addAction(0, "Cancel", cancelPending)
             }
-        }
-        .build()
+        }.build()
 
-    private fun showResultNotification(title: String, text: String) {
-        val notification = NotificationCompat.Builder(context, SYNC_RESULT_CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setAutoCancel(true)
-            .setTimeoutAfter(RESULT_DISMISS_DELAY_MS)
-            .setContentIntent(
-                PendingIntent.getActivity(
-                    context, 0,
-                    Intent(context, MainActivity::class.java),
-                    PendingIntent.FLAG_IMMUTABLE,
-                )
-            )
-            .build()
+    private fun showResultNotification(
+        title: String,
+        text: String,
+    ) {
+        val notification =
+            NotificationCompat
+                .Builder(context, SYNC_RESULT_CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setAutoCancel(true)
+                .setTimeoutAfter(RESULT_DISMISS_DELAY_MS)
+                .setContentIntent(
+                    PendingIntent.getActivity(
+                        context,
+                        0,
+                        Intent(context, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                ).build()
 
         manager.notify(SYNC_RESULT_NOTIFICATION_ID, notification)
         scope.launch {
@@ -178,12 +197,12 @@ class SyncNotificationManager @Inject constructor(
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL_ID, "Sync Status", NotificationManager.IMPORTANCE_LOW).apply {
                     description = "Persistent sync status"
-                }
+                },
             )
             manager.createNotificationChannel(
                 NotificationChannel(SYNC_RESULT_CHANNEL_ID, "Sync Results", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "Sync completion and error notifications"
-                }
+                },
             )
         }
     }
@@ -200,7 +219,10 @@ class SyncNotificationManager @Inject constructor(
 class CancelSyncReceiver : BroadcastReceiver() {
     @Inject lateinit var syncRepository: SyncRepository
 
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         if (intent.action == SyncNotificationManager.ACTION_CANCEL_SYNC) {
             syncRepository.cancel()
         }

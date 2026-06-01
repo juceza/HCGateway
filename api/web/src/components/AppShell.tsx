@@ -1,10 +1,13 @@
-import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { BookOpen, Settings } from "lucide-react";
+import type { ReactNode } from 'react';
 
-import { SovereigntyBadge } from "@/components/SovereigntyBadge";
-import { getAuth } from "@/lib/auth";
-import { API_DOCS_URL, formatExpiry } from "@/lib/shell";
+import { Link } from '@tanstack/react-router';
+
+import { BookOpen, Settings } from 'lucide-react';
+
+import { getAuth } from '@/lib/auth';
+import { API_DOCS_URL, formatExpiry } from '@/lib/shell';
+
+import { SovereigntyBadge } from '@/components/SovereigntyBadge';
 
 // Authenticated app shell. A minimal top-bar consistent with DESIGN.md
 // (64px white nav, monochrome ink) wrapping the three authed routes — no heavy
@@ -18,53 +21,53 @@ export function AppShell({ children }: { children: ReactNode }) {
   const expiry = auth ? formatExpiry(auth.expiry) : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4">
+    <div className='bg-background flex min-h-dvh flex-col'>
+      <header className='border-border bg-background/95 sticky top-0 z-10 border-b backdrop-blur'>
+        <div className='mx-auto flex h-16 w-full max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4'>
           <Link
-            to="/"
-            className="text-base font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            to='/'
+            className='focus-visible:ring-ring text-base font-semibold tracking-tight outline-none focus-visible:ring-2'
           >
             HCGateway
           </Link>
 
-          <div className="hidden sm:block">
+          <div className='hidden sm:block'>
             <SovereigntyBadge />
           </div>
 
-          <nav className="ml-auto flex items-center gap-1 text-sm">
+          <nav className='ml-auto flex items-center gap-1 text-sm'>
             <a
               href={API_DOCS_URL}
-              target="_blank"
-              rel="noreferrer"
-              data-testid="api-docs-link"
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              target='_blank'
+              rel='noreferrer'
+              data-testid='api-docs-link'
+              className='text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors'
             >
-              <BookOpen className="size-4" aria-hidden />
+              <BookOpen className='size-4' aria-hidden />
               API docs
             </a>
             <Link
-              to="/settings"
-              data-testid="settings-link"
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [&.active]:text-foreground"
+              to='/settings'
+              data-testid='settings-link'
+              className='text-muted-foreground hover:bg-muted hover:text-foreground [&.active]:text-foreground inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors'
             >
-              <Settings className="size-4" aria-hidden />
+              <Settings className='size-4' aria-hidden />
               Settings
             </Link>
           </nav>
 
           {auth && (
-            <div className="flex w-full items-center justify-between gap-3 border-t border-border pt-2 text-xs text-muted-foreground sm:w-auto sm:border-0 sm:pt-0">
+            <div className='border-border text-muted-foreground flex w-full items-center justify-between gap-3 border-t pt-2 text-xs sm:w-auto sm:border-0 sm:pt-0'>
               <span
-                data-testid="shell-username"
-                className="font-medium text-foreground"
+                data-testid='shell-username'
+                className='text-foreground font-medium'
               >
                 {auth.username}
               </span>
               {expiry && (
-                <span data-testid="shell-expiry">
+                <span data-testid='shell-expiry'>
                   {expiry.expired
-                    ? "Session expired"
+                    ? 'Session expired'
                     : `Expires ${expiry.text}`}
                 </span>
               )}
@@ -73,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="flex-1">{children}</div>
+      <div className='flex-1'>{children}</div>
     </div>
   );
 }

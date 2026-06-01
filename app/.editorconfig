@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+# ktlint configuration (consumed by Spotless and any IDE ktlint integration).
+#
+# Compose @Composable functions are intentionally PascalCase (HomeScreen, etc.),
+# so the function-naming rule must skip them.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Don't enforce a hard line length — avoids a large one-off reformatting churn
+# across the existing codebase.
+ktlint_standard_max-line-length = disabled
+# Trailing commas keep diffs small (one line changes, not two) and are the
+# modern Kotlin idiom.
+ktlint_standard_trailing-comma-on-call-site = enabled
+ktlint_standard_trailing-comma-on-declaration-site = enabled
+# Compose and Health Connect code idiomatically uses wildcard imports
+# (androidx.compose.material3.*, foundation.layout.*, runtime.*, and
+# health.connect.client.records.* which has 40+ record types). Expanding them by
+# hand adds churn without value — and the rule has no autofix — so allow them.
+ktlint_standard_no-wildcard-imports = disabled
+
+[*.{yml,yaml,json,xml}]
+indent_size = 2

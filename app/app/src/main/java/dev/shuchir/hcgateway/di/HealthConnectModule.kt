@@ -12,17 +12,17 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object HealthConnectModule {
-
     @Provides
     @Singleton
-    fun provideHealthConnectClient(@ApplicationContext context: Context): HealthConnectClient? =
-        try {
-            if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
-                HealthConnectClient.getOrCreate(context)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
+    fun provideHealthConnectClient(
+        @ApplicationContext context: Context,
+    ): HealthConnectClient? = try {
+        if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
+            HealthConnectClient.getOrCreate(context)
+        } else {
             null
         }
+    } catch (e: Exception) {
+        null
+    }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "hcgateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Quality hooks for the HCGateway repo (lefthook + commitlint). Code lives in api/ (Python/uv), api/web/ (Vite/bun) and app/ (Android/Gradle).",
+  "scripts": {
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
+    "lefthook": "^2.1.4"
+  }
+}

@@ -16,7 +16,7 @@
 // (every record `start` is `Instant.toString()` → `...Z`), so normalising to
 // `Date.toISOString()` keeps comparisons correct (TechSpec Known Risks).
 
-import type { AllowlistedQuery } from "./api";
+import type { AllowlistedQuery } from './api';
 
 /** A half-open time window. Each bound is a `Date` or an ISO-8601 string. */
 export interface TimeWindow {
@@ -25,7 +25,7 @@ export interface TimeWindow {
 }
 
 /** Bucket size for downsampling, derived from the window span. */
-export type Granularity = "hour" | "day" | "week";
+export type Granularity = 'hour' | 'day' | 'week';
 
 /**
  * One sample fed into the bucketer. `start` is the timestamp the sample is
@@ -76,17 +76,17 @@ export function deriveGranularity(window: TimeWindow): Granularity {
   const span =
     new Date(toIso(window.end)).getTime() -
     new Date(toIso(window.start)).getTime();
-  if (span <= 36 * MS_PER_HOUR) return "hour";
-  if (span <= 92 * MS_PER_DAY) return "day";
-  return "week";
+  if (span <= 36 * MS_PER_HOUR) return 'hour';
+  if (span <= 92 * MS_PER_DAY) return 'day';
+  return 'week';
 }
 
 /** Floor an ISO timestamp to the start of its bucket, in UTC. */
 function floorToBucket(iso: string, granularity: Granularity): string {
   const d = new Date(iso);
-  if (granularity === "hour") {
+  if (granularity === 'hour') {
     d.setUTCMinutes(0, 0, 0);
-  } else if (granularity === "day") {
+  } else if (granularity === 'day') {
     d.setUTCHours(0, 0, 0, 0);
   } else {
     // Week: floor to the most recent Monday (UTC).

@@ -1,16 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  RouterProvider,
   createMemoryHistory,
   createRouter,
-} from "@tanstack/react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+  RouterProvider,
+} from '@tanstack/react-router';
 
-import { routeTree } from "@/routeTree.gen";
-import * as api from "@/lib/api";
-import { type AuthState, setAuth } from "@/lib/auth";
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import * as api from '@/lib/api';
+import { type AuthState, setAuth } from '@/lib/auth';
+
+import { routeTree } from '@/routeTree.gen';
 
 // The detail route is exercised end-to-end through the real router + query
 // layer; only the API boundary (`fetchRecords`) is spied. This proves the
@@ -19,10 +22,10 @@ import { type AuthState, setAuth } from "@/lib/auth";
 // the loading/empty/error states.
 
 const SESSION: AuthState = {
-  token: "tok-1",
-  refresh: "ref-1",
-  expiry: "2026-06-01T12:00:00Z",
-  username: "alice",
+  token: 'tok-1',
+  refresh: 'ref-1',
+  expiry: '2026-06-01T12:00:00Z',
+  username: 'alice',
 };
 
 const DAY = 86_400_000;
@@ -38,7 +41,7 @@ function recentRecord(
     data,
     start: new Date(Date.now() - startMsAgo).toISOString(),
     end: null,
-    app: "com.example",
+    app: 'com.example',
   };
 }
 
@@ -69,15 +72,15 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("per-type detail route", () => {
-  it("defaults to a last-7-days window when no search-param is present", async () => {
+describe('per-type detail route', () => {
+  it('defaults to a last-7-days window when no search-param is present', async () => {
     const spy = vi
-      .spyOn(api, "fetchRecords")
-      .mockResolvedValue([recentRecord("a", { count: 1000 })]);
+      .spyOn(api, 'fetchRecords')
+      .mockResolvedValue([recentRecord('a', { count: 1000 })]);
 
-    renderRoute("/records/Steps");
+    renderRoute('/records/Steps');
 
-    await screen.findByTestId("record-detail");
+    await screen.findByTestId('record-detail');
     await waitFor(() => expect(spy).toHaveBeenCalled());
 
     // The window passed to fetch spans ~7 days (the default).
@@ -88,60 +91,66 @@ describe("per-type detail route", () => {
       Date.parse(query.start!.$lte!) - Date.parse(query.start!.$gte!);
     expect(Math.round(span / DAY)).toBe(7);
     // The window selector highlights "Week" for the default span.
-    expect(screen.getByTestId("window-week")).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    expect(screen.getByTestId('window-week')).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
   });
 
-  it("renders a chart with min/max preserved for a charted amplitude type", async () => {
+  it('renders a chart with min/max preserved for a charted amplitude type', async () => {
     // HeartRate carries per-sample beatsPerMinute; bucketing keeps min/max.
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([
-      recentRecord("h1", {
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([
+      recentRecord('h1', {
         samples: [
-          { time: new Date(Date.now() - 2 * DAY).toISOString(), beatsPerMinute: 55 },
-          { time: new Date(Date.now() - 2 * DAY + 1000).toISOString(), beatsPerMinute: 130 },
+          {
+            time: new Date(Date.now() - 2 * DAY).toISOString(),
+            beatsPerMinute: 55,
+          },
+          {
+            time: new Date(Date.now() - 2 * DAY + 1000).toISOString(),
+            beatsPerMinute: 130,
+          },
         ],
       }),
     ]);
 
-    renderRoute("/records/HeartRate");
+    renderRoute('/records/HeartRate');
 
-    const chart = await screen.findByTestId("record-chart");
-    expect(chart).toHaveAttribute("data-amplitude", "true");
+    const chart = await screen.findByTestId('record-chart');
+    expect(chart).toHaveAttribute('data-amplitude', 'true');
     // The accessible caption exposes the preserved extremes (55..130 bpm).
-    expect(screen.getByTestId("chart-caption")).toHaveTextContent("min 55");
-    expect(screen.getByTestId("chart-caption")).toHaveTextContent("max 130");
+    expect(screen.getByTestId('chart-caption')).toHaveTextContent('min 55');
+    expect(screen.getByTestId('chart-caption')).toHaveTextContent('max 130');
   });
 
-  it("renders the table + count summary for a non-charted type (no chart)", async () => {
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([
-      recentRecord("d1", { distance: 100 }),
-      recentRecord("d2", { distance: 200 }, 2 * DAY),
+  it('renders the table + count summary for a non-charted type (no chart)', async () => {
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([
+      recentRecord('d1', { distance: 100 }),
+      recentRecord('d2', { distance: 200 }, 2 * DAY),
     ]);
 
-    renderRoute("/records/Distance");
+    renderRoute('/records/Distance');
 
-    expect(await screen.findByTestId("record-table")).toBeInTheDocument();
-    expect(screen.getByTestId("count-summary")).toHaveTextContent(
-      "2 records in this window",
+    expect(await screen.findByTestId('record-table')).toBeInTheDocument();
+    expect(screen.getByTestId('count-summary')).toHaveTextContent(
+      '2 records in this window',
     );
-    expect(screen.getByText("Source app")).toBeInTheDocument();
+    expect(screen.getByText('Source app')).toBeInTheDocument();
     // A non-charted type renders no chart.
-    expect(screen.queryByTestId("record-chart")).not.toBeInTheDocument();
+    expect(screen.queryByTestId('record-chart')).not.toBeInTheDocument();
   });
 
-  it("switches the selector to month, updating the search-param and refetching", async () => {
+  it('switches the selector to month, updating the search-param and refetching', async () => {
     const user = userEvent.setup();
     const spy = vi
-      .spyOn(api, "fetchRecords")
-      .mockResolvedValue([recentRecord("a", { count: 1 })]);
+      .spyOn(api, 'fetchRecords')
+      .mockResolvedValue([recentRecord('a', { count: 1 })]);
 
-    const router = renderRoute("/records/Steps");
-    await screen.findByTestId("record-detail");
+    const router = renderRoute('/records/Steps');
+    await screen.findByTestId('record-detail');
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
 
-    await user.click(screen.getByTestId("window-month"));
+    await user.click(screen.getByTestId('window-month'));
 
     // The URL search-param window widens to ~30 days and a refetch fires.
     await waitFor(() => {
@@ -156,61 +165,64 @@ describe("per-type detail route", () => {
     await waitFor(() => expect(spy.mock.calls.length).toBeGreaterThan(1));
   });
 
-  it("opens the JSON dialog and pretty-prints the full record", async () => {
+  it('opens the JSON dialog and pretty-prints the full record', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([
-      recentRecord("rec-xyz", { distance: 42 }),
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([
+      recentRecord('rec-xyz', { distance: 42 }),
     ]);
 
-    renderRoute("/records/Distance");
+    renderRoute('/records/Distance');
 
-    await user.click(await screen.findByTestId("view-rec-xyz"));
+    await user.click(await screen.findByTestId('view-rec-xyz'));
 
-    const dialog = await screen.findByTestId("json-dialog");
-    const content = within(dialog).getByTestId("json-content");
+    const dialog = await screen.findByTestId('json-dialog');
+    const content = within(dialog).getByTestId('json-content');
     // Pretty-printed (indented) and contains the full decrypted record.
     expect(content.textContent).toContain('"_id": "rec-xyz"');
     expect(content.textContent).toContain('"distance": 42');
-    expect(content.textContent).toContain("\n  ");
+    expect(content.textContent).toContain('\n  ');
   });
 
-  it("sorts rows by start and pages over the returned window client-side", async () => {
+  it('sorts rows by start and pages over the returned window client-side', async () => {
     const user = userEvent.setup();
     // 30 records → 2 pages at the 25/page default; distinct, ordered starts.
     const records = Array.from({ length: 30 }, (_, i) =>
       recentRecord(`r${i}`, { distance: i }, (i + 1) * 1000),
     );
-    vi.spyOn(api, "fetchRecords").mockResolvedValue(records);
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue(records);
 
-    renderRoute("/records/Distance");
+    renderRoute('/records/Distance');
 
-    await screen.findByTestId("record-table");
-    expect(screen.getByTestId("page-info")).toHaveTextContent("Page 1 of 2");
+    await screen.findByTestId('record-table');
+    expect(screen.getByTestId('page-info')).toHaveTextContent('Page 1 of 2');
     // Default sort is most-recent-first: r0 (smallest msAgo) is newest.
     let rows = screen.getAllByTestId(/^row-/);
-    expect(rows[0]).toHaveAttribute("data-testid", "row-r0");
+    expect(rows[0]).toHaveAttribute('data-testid', 'row-r0');
 
     // Page 2 holds the remaining 5 rows.
-    await user.click(screen.getByTestId("page-next"));
+    await user.click(screen.getByTestId('page-next'));
     await waitFor(() =>
-      expect(screen.getByTestId("page-info")).toHaveTextContent("Page 2 of 2"),
+      expect(screen.getByTestId('page-info')).toHaveTextContent('Page 2 of 2'),
     );
     expect(screen.getAllByTestId(/^row-/)).toHaveLength(5);
 
     // Toggling sort flips to oldest-first and resets to page 1.
-    await user.click(screen.getByTestId("sort-start"));
+    await user.click(screen.getByTestId('sort-start'));
     await waitFor(() =>
-      expect(screen.getByTestId("page-info")).toHaveTextContent("Page 1 of 2"),
+      expect(screen.getByTestId('page-info')).toHaveTextContent('Page 1 of 2'),
     );
     rows = screen.getAllByTestId(/^row-/);
-    expect(rows[0]).toHaveAttribute("data-testid", "row-r29");
+    expect(rows[0]).toHaveAttribute('data-testid', 'row-r29');
   });
 
-  it("shows the wide-window notice for a heavy type over a wide window", async () => {
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([
-      recentRecord("h1", {
+  it('shows the wide-window notice for a heavy type over a wide window', async () => {
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([
+      recentRecord('h1', {
         samples: [
-          { time: new Date(Date.now() - DAY).toISOString(), beatsPerMinute: 60 },
+          {
+            time: new Date(Date.now() - DAY).toISOString(),
+            beatsPerMinute: 60,
+          },
         ],
       }),
     ]);
@@ -222,46 +234,49 @@ describe("per-type detail route", () => {
       `/records/HeartRate?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
     );
 
-    expect(await screen.findByTestId("wide-window-notice")).toBeInTheDocument();
+    expect(await screen.findByTestId('wide-window-notice')).toBeInTheDocument();
   });
 
-  it("does not show the wide-window notice on the default window", async () => {
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([
-      recentRecord("h1", {
+  it('does not show the wide-window notice on the default window', async () => {
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([
+      recentRecord('h1', {
         samples: [
-          { time: new Date(Date.now() - DAY).toISOString(), beatsPerMinute: 60 },
+          {
+            time: new Date(Date.now() - DAY).toISOString(),
+            beatsPerMinute: 60,
+          },
         ],
       }),
     ]);
 
-    renderRoute("/records/HeartRate");
+    renderRoute('/records/HeartRate');
 
-    await screen.findByTestId("record-chart");
-    expect(screen.queryByTestId("wide-window-notice")).not.toBeInTheDocument();
+    await screen.findByTestId('record-chart');
+    expect(screen.queryByTestId('wide-window-notice')).not.toBeInTheDocument();
   });
 
-  it("shows the empty state when the window has no records", async () => {
-    vi.spyOn(api, "fetchRecords").mockResolvedValue([]);
+  it('shows the empty state when the window has no records', async () => {
+    vi.spyOn(api, 'fetchRecords').mockResolvedValue([]);
 
-    renderRoute("/records/Steps");
+    renderRoute('/records/Steps');
 
-    expect(await screen.findByTestId("detail-empty")).toBeInTheDocument();
-    expect(screen.queryByTestId("record-table")).not.toBeInTheDocument();
+    expect(await screen.findByTestId('detail-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('record-table')).not.toBeInTheDocument();
   });
 
-  it("shows the error state when the query fails", async () => {
-    vi.spyOn(api, "fetchRecords").mockRejectedValue(new api.ApiError(500, "x"));
+  it('shows the error state when the query fails', async () => {
+    vi.spyOn(api, 'fetchRecords').mockRejectedValue(new api.ApiError(500, 'x'));
 
-    renderRoute("/records/Steps");
+    renderRoute('/records/Steps');
 
-    expect(await screen.findByTestId("detail-error")).toBeInTheDocument();
+    expect(await screen.findByTestId('detail-error')).toBeInTheDocument();
   });
 
-  it("shows a loading skeleton while the query is in flight", async () => {
-    vi.spyOn(api, "fetchRecords").mockReturnValue(new Promise(() => {}));
+  it('shows a loading skeleton while the query is in flight', async () => {
+    vi.spyOn(api, 'fetchRecords').mockReturnValue(new Promise(() => {}));
 
-    renderRoute("/records/Steps");
+    renderRoute('/records/Steps');
 
-    expect(await screen.findByTestId("detail-skeleton")).toBeInTheDocument();
+    expect(await screen.findByTestId('detail-skeleton')).toBeInTheDocument();
   });
 });

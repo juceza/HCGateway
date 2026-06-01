@@ -1,20 +1,23 @@
-import { createElement, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement, type ReactNode } from 'react';
 
-import * as api from "./api";
-import { setAuth } from "./auth";
-import { buildTimeWindowQuery, type TimeWindow } from "./transforms";
-import { useCounts, useRecords } from "./queries";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import { renderHook, waitFor } from '@testing-library/react';
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import * as api from './api';
+import { setAuth } from './auth';
+import { useCounts, useRecords } from './queries';
+import { buildTimeWindowQuery, type TimeWindow } from './transforms';
 
 // Unit tests spy on the API client so the hooks are exercised in isolation;
 // `restoreAllMocks` reinstates the real exports, so the integration test below
 // drives the real `fetchRecords` path through a mocked global `fetch`.
 
 const WINDOW: TimeWindow = {
-  start: "2026-05-25T00:00:00.000Z",
-  end: "2026-06-01T00:00:00.000Z",
+  start: '2026-05-25T00:00:00.000Z',
+  end: '2026-06-01T00:00:00.000Z',
 };
 
 /** A fresh client per test with retries off so error states settle fast. */
@@ -32,10 +35,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("useCounts", () => {
-  it("returns data from getCounts and transitions loading→success", async () => {
+describe('useCounts', () => {
+  it('returns data from getCounts and transitions loading→success', async () => {
     const counts = { Steps: 1234, HeartRate: 42 };
-    vi.spyOn(api, "getCounts").mockResolvedValue(counts);
+    vi.spyOn(api, 'getCounts').mockResolvedValue(counts);
 
     const { result } = renderHook(() => useCounts(), {
       wrapper: wrapperFor(newClient()),
@@ -47,8 +50,8 @@ describe("useCounts", () => {
     expect(api.getCounts).toHaveBeenCalledTimes(1);
   });
 
-  it("surfaces an error through the error state, not a throw", async () => {
-    vi.spyOn(api, "getCounts").mockRejectedValue(new api.ApiError(500, "boom"));
+  it('surfaces an error through the error state, not a throw', async () => {
+    vi.spyOn(api, 'getCounts').mockRejectedValue(new api.ApiError(500, 'boom'));
 
     const { result } = renderHook(() => useCounts(), {
       wrapper: wrapperFor(newClient()),
@@ -60,38 +63,39 @@ describe("useCounts", () => {
   });
 });
 
-describe("useRecords", () => {
-  it("builds the query via transforms and calls fetchRecords", async () => {
+describe('useRecords', () => {
+  it('builds the query via transforms and calls fetchRecords', async () => {
     const records = [
       {
-        _id: "1",
-        id: "1",
+        _id: '1',
+        id: '1',
         data: { count: 100 },
-        start: "2026-05-26T08:00:00Z",
+        start: '2026-05-26T08:00:00Z',
         end: null,
-        app: "com.example",
+        app: 'com.example',
       },
     ] satisfies api.HealthRecord[];
-    const fetchSpy = vi
-      .spyOn(api, "fetchRecords")
-      .mockResolvedValue(records);
+    const fetchSpy = vi.spyOn(api, 'fetchRecords').mockResolvedValue(records);
 
-    const { result } = renderHook(() => useRecords("Steps", WINDOW), {
+    const { result } = renderHook(() => useRecords('Steps', WINDOW), {
       wrapper: wrapperFor(newClient()),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(records);
     // The window is shaped by the single query builder, not hand-rolled here.
-    expect(fetchSpy).toHaveBeenCalledWith("Steps", buildTimeWindowQuery(WINDOW));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'Steps',
+      buildTimeWindowQuery(WINDOW),
+    );
   });
 
-  it("changes the query key and refetches when the window changes", async () => {
-    const fetchSpy = vi.spyOn(api, "fetchRecords").mockResolvedValue([]);
+  it('changes the query key and refetches when the window changes', async () => {
+    const fetchSpy = vi.spyOn(api, 'fetchRecords').mockResolvedValue([]);
     const client = newClient();
 
     const { result, rerender } = renderHook(
-      ({ w }: { w: TimeWindow }) => useRecords("Steps", w),
+      ({ w }: { w: TimeWindow }) => useRecords('Steps', w),
       { wrapper: wrapperFor(client), initialProps: { w: WINDOW } },
     );
 
@@ -99,22 +103,22 @@ describe("useRecords", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     const widerWindow: TimeWindow = {
-      start: "2026-05-01T00:00:00.000Z",
-      end: "2026-06-01T00:00:00.000Z",
+      start: '2026-05-01T00:00:00.000Z',
+      end: '2026-06-01T00:00:00.000Z',
     };
     rerender({ w: widerWindow });
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
     expect(fetchSpy).toHaveBeenLastCalledWith(
-      "Steps",
+      'Steps',
       buildTimeWindowQuery(widerWindow),
     );
   });
 
-  it("surfaces a fetchRecords error through the error state", async () => {
-    vi.spyOn(api, "fetchRecords").mockRejectedValue(new api.AuthError());
+  it('surfaces a fetchRecords error through the error state', async () => {
+    vi.spyOn(api, 'fetchRecords').mockRejectedValue(new api.AuthError());
 
-    const { result } = renderHook(() => useRecords("Steps", WINDOW), {
+    const { result } = renderHook(() => useRecords('Steps', WINDOW), {
       wrapper: wrapperFor(newClient()),
     });
 
@@ -123,13 +127,13 @@ describe("useRecords", () => {
   });
 });
 
-describe("useRecords integration (mocked global fetch)", () => {
+describe('useRecords integration (mocked global fetch)', () => {
   beforeEach(() => {
     setAuth({
-      token: "tok",
-      refresh: "ref",
-      expiry: "2026-06-02T00:00:00Z",
-      username: "alice",
+      token: 'tok',
+      refresh: 'ref',
+      expiry: '2026-06-02T00:00:00Z',
+      username: 'alice',
     });
   });
 
@@ -137,37 +141,37 @@ describe("useRecords integration (mocked global fetch)", () => {
     localStorage.clear();
   });
 
-  it("drives the real fetchRecords path over a 7-day window and returns records the sparkline can consume", async () => {
+  it('drives the real fetchRecords path over a 7-day window and returns records the sparkline can consume', async () => {
     // Real `api.fetchRecords` runs (mock is per-spy and restored each test);
     // only the network boundary is mocked.
     const payload: api.HealthRecord[] = [
       {
-        _id: "a",
-        id: "a",
+        _id: 'a',
+        id: 'a',
         data: { count: 500 },
-        start: "2026-05-26T10:00:00Z",
+        start: '2026-05-26T10:00:00Z',
         end: null,
-        app: "com.example",
+        app: 'com.example',
       },
       {
-        _id: "b",
-        id: "b",
+        _id: 'b',
+        id: 'b',
         data: { count: 700 },
-        start: "2026-05-27T10:00:00Z",
+        start: '2026-05-27T10:00:00Z',
         end: null,
-        app: "com.example",
+        app: 'com.example',
       },
     ];
     const fetchMock = vi.fn(
       async () =>
         new Response(JSON.stringify(payload), {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         }),
     );
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal('fetch', fetchMock);
 
-    const { result } = renderHook(() => useRecords("Steps", WINDOW), {
+    const { result } = renderHook(() => useRecords('Steps', WINDOW), {
       wrapper: wrapperFor(newClient()),
     });
 
@@ -178,7 +182,7 @@ describe("useRecords integration (mocked global fetch)", () => {
       string,
       RequestInit,
     ];
-    expect(url).toBe("/api/v2/fetch/steps");
+    expect(url).toBe('/api/v2/fetch/steps');
     expect(JSON.parse(init.body as string)).toEqual({
       queries: buildTimeWindowQuery(WINDOW),
     });

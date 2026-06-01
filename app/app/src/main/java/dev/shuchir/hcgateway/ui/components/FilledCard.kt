@@ -19,14 +19,17 @@ fun FilledCard(
 ) {
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = if (tonalElevation) {
+        colors =
+        CardDefaults.elevatedCardColors(
+            containerColor =
+            if (tonalElevation) {
                 MaterialTheme.colorScheme.surfaceContainerHigh
             } else {
                 MaterialTheme.colorScheme.surfaceContainerLow
             },
         ),
-        elevation = CardDefaults.elevatedCardElevation(
+        elevation =
+        CardDefaults.elevatedCardElevation(
             defaultElevation = 0.dp,
         ),
     ) {

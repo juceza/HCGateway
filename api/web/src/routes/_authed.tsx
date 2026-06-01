@@ -1,8 +1,9 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
-import { AppShell } from "@/components/AppShell";
-import { AuthedErrorBoundary } from "@/components/AuthedErrorBoundary";
-import { guardRedirect } from "@/lib/authGuard";
+import { guardRedirect } from '@/lib/authGuard';
+
+import { AppShell } from '@/components/AppShell';
+import { AuthedErrorBoundary } from '@/components/AuthedErrorBoundary';
 
 // Pathless auth-guard layout. Every protected route nests under this
 // file (`_authed/index`, `_authed/records.$type`, `_authed/settings`). The
@@ -13,7 +14,7 @@ import { guardRedirect } from "@/lib/authGuard";
 // case up front; a *failed* refresh surfaces as an `AuthError` during a child
 // load and is caught by `AuthedErrorBoundary`, which bounces to `/login`
 // without a phantom logout for the recoverable 401s `apiFetch` already retries.
-export const Route = createFileRoute("/_authed")({
+export const Route = createFileRoute('/_authed')({
   beforeLoad: ({ location }) => {
     const target = guardRedirect(location.href);
     if (target) throw redirect(target);

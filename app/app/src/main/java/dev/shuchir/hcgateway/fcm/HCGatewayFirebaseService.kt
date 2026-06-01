@@ -16,10 +16,12 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class HCGatewayFirebaseService : FirebaseMessagingService() {
-
     @Inject lateinit var preferencesRepository: PreferencesRepository
+
     @Inject lateinit var healthConnectRepository: HealthConnectRepository
+
     @Inject lateinit var syncRepository: SyncRepository
+
     @Inject lateinit var gson: Gson
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -44,10 +46,11 @@ class HCGatewayFirebaseService : FirebaseMessagingService() {
 
     private suspend fun handlePush(payload: String) {
         try {
-            val records = gson.fromJson<List<Map<String, Any>>>(
-                payload,
-                object : TypeToken<List<Map<String, Any>>>() {}.type
-            )
+            val records =
+                gson.fromJson<List<Map<String, Any>>>(
+                    payload,
+                    object : TypeToken<List<Map<String, Any>>>() {}.type,
+                )
             // Insert records via Health Connect
             // Note: actual record deserialization would need to map to HC Record types
         } catch (e: Exception) {

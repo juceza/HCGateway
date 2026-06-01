@@ -15,19 +15,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
+class SettingsViewModel
+@Inject
+constructor(
     private val preferencesRepository: PreferencesRepository,
     private val authRepository: AuthRepository,
     private val syncScheduler: SyncScheduler,
 ) : ViewModel() {
-
-    val settings: StateFlow<UserSettings?> = preferencesRepository.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val settings: StateFlow<UserSettings?> =
+        preferencesRepository.settings
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun updateThemeMode(mode: String) {
         viewModelScope.launch { preferencesRepository.updateThemeMode(mode) }
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-            dev.shuchir.hcgateway.ui.theme.themeModeToNightMode(mode)
+            dev.shuchir.hcgateway.ui.theme
+                .themeModeToNightMode(mode),
         )
     }
 

@@ -3,24 +3,24 @@
 // the shell components stay thin and delegate here so the logic lands under the
 // `src/lib/**` coverage gate. Mirrors the pattern set by `authGuard.ts`.
 
-import { revoke as defaultRevoke } from "./api";
-import { clearAuth as defaultClearAuth } from "./auth";
+import { revoke as defaultRevoke } from './api';
+import { clearAuth as defaultClearAuth } from './auth';
 
 /**
  * Public REST API documentation (the link surfaced in the shell). This is the
  * canonical docs URL maintained by the original author — see README "REST API".
  */
-export const API_DOCS_URL = "https://hcgateway.shuchir.dev/";
+export const API_DOCS_URL = 'https://hcgateway.shuchir.dev/';
 
 /**
  * Data-sovereignty copy for the discreet shell badge. Framed as ownership and
  * control — NOT as a zero-knowledge / "we can't read it" promise, because the
  * server decrypts record `data` server-side.
  */
-export const SOVEREIGNTY_BADGE_LABEL = "Your data, on your server";
+export const SOVEREIGNTY_BADGE_LABEL = 'Your data, on your server';
 export const SOVEREIGNTY_BADGE_DETAIL =
-  "This dashboard reads from the HCGateway server you control. Your health " +
-  "data lives on your own server, not in a third-party cloud.";
+  'This dashboard reads from the HCGateway server you control. Your health ' +
+  'data lives on your own server, not in a third-party cloud.';
 
 /** A human-readable token-expiry for the shell. */
 export interface ExpiryDisplay {
@@ -42,12 +42,12 @@ export function formatExpiry(
 ): ExpiryDisplay {
   const date = new Date(expiry);
   if (Number.isNaN(date.getTime())) {
-    return { text: "Unknown", expired: false };
+    return { text: 'Unknown', expired: false };
   }
-  const text = `${new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
+  const text = `${new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC',
   }).format(date)} UTC`;
   return { text, expired: date.getTime() <= now.getTime() };
 }

@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from '@tanstack/react-router';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { RecordTypeMeta } from "@/lib/recordTypes";
+import type { RecordTypeMeta } from '@/lib/recordTypes';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Count-only card for the non-charted types. It shows label + record
 // count from the cached `/counts` map and issues **no** `/fetch` — bounding the
@@ -16,23 +17,23 @@ interface CountCardProps {
 export function CountCard({ meta, count }: CountCardProps) {
   return (
     <Link
-      to="/records/$type"
+      to='/records/$type'
       params={{ type: meta.name }}
       data-testid={`card-${meta.name}`}
-      className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className='focus-visible:ring-ring block rounded-xl outline-none focus-visible:ring-2'
     >
-      <Card className="gap-3 py-4 transition-shadow hover:shadow-md">
+      <Card className='gap-3 py-4 transition-shadow hover:shadow-md'>
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className='text-muted-foreground text-sm font-medium'>
             {meta.label}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p data-testid="card-count" className="text-2xl font-semibold">
-            {count.toLocaleString("en-US")}
+          <p data-testid='card-count' className='text-2xl font-semibold'>
+            {count.toLocaleString('en-US')}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {count === 1 ? "record" : "records"}
+          <p className='text-muted-foreground text-sm'>
+            {count === 1 ? 'record' : 'records'}
           </p>
         </CardContent>
       </Card>

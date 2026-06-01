@@ -10,8 +10,8 @@
 // session and throws `AuthError`, which the router turns into a redirect to
 // `/login`. See TechSpec "Integration Points" (401-vs-403, single-refresh).
 
-import { type AuthState, clearAuth, getAuth, setAuth } from "./auth";
-import { displayToCollection } from "./recordTypes";
+import { type AuthState, clearAuth, getAuth, setAuth } from './auth';
+import { displayToCollection } from './recordTypes';
 
 /** Thrown for any non-2xx response that is not the auth-refresh path. */
 export class ApiError extends Error {
@@ -20,7 +20,7 @@ export class ApiError extends Error {
 
   constructor(status: number, body: unknown) {
     super(`API error ${status}`);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
     this.body = body;
   }
@@ -28,9 +28,9 @@ export class ApiError extends Error {
 
 /** Thrown when the session is unrecoverable (refresh failed, or a 403). */
 export class AuthError extends Error {
-  constructor(message = "authentication required") {
+  constructor(message = 'authentication required') {
     super(message);
-    this.name = "AuthError";
+    this.name = 'AuthError';
   }
 }
 
@@ -64,7 +64,7 @@ interface SessionResponse {
   expiry: string;
 }
 
-const API_PREFIX = "/api/v2";
+const API_PREFIX = '/api/v2';
 
 interface FetchOptions {
   method?: string;
@@ -89,11 +89,11 @@ async function rawFetch(
   body: unknown,
   token: string | null,
 ): Promise<Response> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const init: RequestInit = { method, headers };
   if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
+    headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(body);
   }
   return fetch(`${API_PREFIX}${path}`, init);
@@ -131,7 +131,7 @@ export async function apiFetch<T>(
   path: string,
   opts: FetchOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, auth = true } = opts;
+  const { method = 'GET', body, auth = true } = opts;
 
   const token = auth ? (getAuth()?.token ?? null) : null;
   let res = await rawFetch(path, method, body, token);
@@ -167,8 +167,8 @@ export async function login(
   username: string,
   password: string,
 ): Promise<AuthState> {
-  const session = await apiFetch<SessionResponse>("/login", {
-    method: "POST",
+  const session = await apiFetch<SessionResponse>('/login', {
+    method: 'POST',
     body: { username, password },
     auth: false,
   });
@@ -184,10 +184,10 @@ export async function login(
  */
 export async function refresh(): Promise<AuthState> {
   const current = getAuth();
-  if (!current) throw new AuthError("no session to refresh");
+  if (!current) throw new AuthError('no session to refresh');
 
-  const session = await apiFetch<SessionResponse>("/refresh", {
-    method: "POST",
+  const session = await apiFetch<SessionResponse>('/refresh', {
+    method: 'POST',
     body: { refresh: current.refresh },
     auth: false,
   });
@@ -198,13 +198,13 @@ export async function refresh(): Promise<AuthState> {
 
 /** Revoke the current session server-side and clear it locally. */
 export async function revoke(): Promise<void> {
-  await apiFetch<{ success: boolean }>("/revoke", { method: "DELETE" });
+  await apiFetch<{ success: boolean }>('/revoke', { method: 'DELETE' });
   clearAuth();
 }
 
 /** Per-type document counts, keyed by display name ("Steps", "HeartRate"). */
 export function getCounts(): Promise<Record<string, number>> {
-  return apiFetch<Record<string, number>>("/counts");
+  return apiFetch<Record<string, number>>('/counts');
 }
 
 /**
@@ -218,7 +218,7 @@ export function fetchRecords(
 ): Promise<HealthRecord[]> {
   const method = displayToCollection(displayName);
   return apiFetch<HealthRecord[]>(`/fetch/${method}`, {
-    method: "POST",
+    method: 'POST',
     body: { queries },
   });
 }

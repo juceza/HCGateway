@@ -1,6 +1,6 @@
-import { Line, LineChart } from "recharts";
+import { Line, LineChart } from 'recharts';
 
-import type { ChartPoint } from "@/lib/transforms";
+import type { ChartPoint } from '@/lib/transforms';
 
 // Mini trend sparkline for the dashboard summary cards. Built on the
 // same Recharts engine the rich detail charts (task_08) use, but kept
@@ -15,9 +15,13 @@ interface SparklineProps {
   height?: number;
 }
 
-export function Sparkline({ points, width = 120, height = 36 }: SparklineProps) {
+export function Sparkline({
+  points,
+  width = 120,
+  height = 36,
+}: SparklineProps) {
   return (
-    <div data-testid="sparkline" className="text-primary">
+    <div data-testid='sparkline' className='text-primary'>
       <LineChart
         width={width}
         height={height}
@@ -25,9 +29,9 @@ export function Sparkline({ points, width = 120, height = 36 }: SparklineProps) 
         margin={{ top: 3, right: 3, bottom: 3, left: 3 }}
       >
         <Line
-          type="monotone"
-          dataKey="avg"
-          stroke="currentColor"
+          type='monotone'
+          dataKey='avg'
+          stroke='currentColor'
           strokeWidth={1.5}
           dot={false}
           isAnimationActive={false}

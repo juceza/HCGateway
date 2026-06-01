@@ -1,8 +1,10 @@
 import os
+
 import sentry_sdk
+from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
+
 load_dotenv()
 
 
@@ -44,7 +46,10 @@ if _origins:
 
 # v1 has been removed: it accepted an arbitrary `userid` with no authentication,
 # allowing anyone to read/write/delete any user's data.
-from apiVersions.v2 import init_app as init_v2
+# Imported here (not at module top) because it opens the Mongo connection at
+# import time and so must run after load_dotenv() above.
+from apiVersions.v2 import init_app as init_v2  # noqa: E402
+
 init_v2(app)
 
 # Serve the built Web UI SPA from the same Flask process, but only when a built
@@ -54,6 +59,7 @@ init_v2(app)
 _web_dist = os.environ.get("WEB_DIST")
 if _web_dist and os.path.isdir(_web_dist):
     from static_web import create_web_blueprint
+
     app.register_blueprint(create_web_blueprint(_web_dist))
 
 

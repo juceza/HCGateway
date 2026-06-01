@@ -3,22 +3,19 @@ package dev.shuchir.hcgateway.ui.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import soup.compose.material.motion.animation.materialSharedAxisXIn
-import soup.compose.material.motion.animation.materialSharedAxisXOut
-import soup.compose.material.motion.animation.rememberSlideDistance
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,6 +35,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import soup.compose.material.motion.animation.materialSharedAxisXIn
+import soup.compose.material.motion.animation.materialSharedAxisXOut
+import soup.compose.material.motion.animation.rememberSlideDistance
 import javax.inject.Inject
 
 enum class AuthState { Loading, Onboarding, LoggedOut, LoggedIn }
@@ -58,7 +58,6 @@ class NavViewModel @Inject constructor(
             else -> AuthState.LoggedOut
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Loading)
-
 }
 
 @Composable
@@ -89,8 +88,11 @@ fun NavGraph(
                 AuthState.Loading -> {
                     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
                 }
+
                 AuthState.Onboarding -> PermissionOnboardingScreen(onNext = { /* state updates automatically */ })
+
                 AuthState.LoggedOut -> LoginScreen()
+
                 AuthState.LoggedIn -> AuthenticatedNavGraph()
             }
         }

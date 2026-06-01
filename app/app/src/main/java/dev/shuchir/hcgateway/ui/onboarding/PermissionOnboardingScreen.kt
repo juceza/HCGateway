@@ -1,21 +1,21 @@
 package dev.shuchir.hcgateway.ui.onboarding
 
 import android.Manifest
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.material3.MaterialTheme
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -95,7 +95,9 @@ fun PermissionOnboardingScreen(
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            } else true
+            } else {
+                true
+            },
         )
     }
     val notificationLauncher = rememberLauncherForActivityResult(
@@ -148,9 +150,11 @@ fun PermissionOnboardingScreen(
                 icon = {
                     Image(
                         painter = painterResource(R.drawable.ic_health_connect),
-                    colorFilter = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f)
-                        androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
-                    else null,
+                        colorFilter = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) {
+                            androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            null
+                        },
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
                     )

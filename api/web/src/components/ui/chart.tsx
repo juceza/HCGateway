@@ -1,7 +1,8 @@
-import * as React from "react"
-import { ResponsiveContainer } from "recharts"
+import * as React from 'react';
 
-import { cn } from "@/lib/utils"
+import { ResponsiveContainer } from 'recharts';
+
+import { cn } from '@/lib/utils';
 
 // Trimmed shadcn/ui Chart wrapper over Recharts. `ChartContainer`
 // injects each series' colour as a CSS variable (`--color-<key>`) from the
@@ -11,18 +12,18 @@ import { cn } from "@/lib/utils"
 // optional amplitude band) and a tooltip.
 
 export interface ChartSeriesConfig {
-  label: string
-  color: string
+  label: string;
+  color: string;
 }
 
-export type ChartConfig = Record<string, ChartSeriesConfig>
+export type ChartConfig = Record<string, ChartSeriesConfig>;
 
 function configStyle(config: ChartConfig): React.CSSProperties {
-  const vars: Record<string, string> = {}
+  const vars: Record<string, string> = {};
   for (const [key, series] of Object.entries(config)) {
-    vars[`--color-${key}`] = series.color
+    vars[`--color-${key}`] = series.color;
   }
-  return vars as React.CSSProperties
+  return vars as React.CSSProperties;
 }
 
 function ChartContainer({
@@ -30,34 +31,34 @@ function ChartContainer({
   className,
   children,
   ...props
-}: React.ComponentProps<"div"> & {
-  config: ChartConfig
-  children: React.ReactElement
+}: React.ComponentProps<'div'> & {
+  config: ChartConfig;
+  children: React.ReactElement;
 }) {
   return (
     <div
-      data-slot="chart"
+      data-slot='chart'
       className={cn(
-        "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line]:stroke-border/50",
+        '[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line]:stroke-border/50 flex aspect-video justify-center text-xs',
         className,
       )}
       style={configStyle(config)}
       {...props}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width='100%' height='100%'>
         {children}
       </ResponsiveContainer>
     </div>
-  )
+  );
 }
 
 interface TooltipPayloadItem {
   // Recharts allows a function dataKey; we only ever read it as a label key.
-  dataKey?: string | number | ((obj: unknown) => unknown)
-  name?: string | number
+  dataKey?: string | number | ((obj: unknown) => unknown);
+  name?: string | number;
   // Recharts' ValueType (number | string | array); we only render scalars.
-  value?: unknown
-  color?: string
+  value?: unknown;
+  color?: string;
 }
 
 /**
@@ -73,39 +74,41 @@ function ChartTooltipContent({
   labelFormatter,
   valueFormatter,
 }: {
-  active?: boolean
-  payload?: readonly TooltipPayloadItem[]
-  label?: string | number
-  config: ChartConfig
-  labelFormatter?: (label: string | number | undefined) => string
-  valueFormatter?: (value: unknown) => string
+  active?: boolean;
+  payload?: readonly TooltipPayloadItem[];
+  label?: string | number;
+  config: ChartConfig;
+  labelFormatter?: (label: string | number | undefined) => string;
+  valueFormatter?: (value: unknown) => string;
 }) {
-  if (!active || !payload || payload.length === 0) return null
+  if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="grid min-w-32 gap-1 rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-md">
-      <p className="font-medium text-foreground">
-        {labelFormatter ? labelFormatter(label) : String(label ?? "")}
+    <div className='border-border bg-background grid min-w-32 gap-1 rounded-lg border px-3 py-2 text-xs shadow-md'>
+      <p className='text-foreground font-medium'>
+        {labelFormatter ? labelFormatter(label) : String(label ?? '')}
       </p>
       {payload.map((item, i) => {
         const rawKey =
-          typeof item.dataKey === "string" || typeof item.dataKey === "number"
+          typeof item.dataKey === 'string' || typeof item.dataKey === 'number'
             ? item.dataKey
-            : (item.name ?? i)
-        const key = String(rawKey)
-        const series = config[key]
+            : (item.name ?? i);
+        const key = String(rawKey);
+        const series = config[key];
         return (
-          <div key={key} className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">
+          <div key={key} className='flex items-center justify-between gap-3'>
+            <span className='text-muted-foreground'>
               {series?.label ?? key}
             </span>
-            <span className="font-medium tabular-nums text-foreground">
-              {valueFormatter ? valueFormatter(item.value) : String(item.value ?? "")}
+            <span className='text-foreground font-medium tabular-nums'>
+              {valueFormatter
+                ? valueFormatter(item.value)
+                : String(item.value ?? '')}
             </span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
-export { ChartContainer, ChartTooltipContent }
+export { ChartContainer, ChartTooltipContent };

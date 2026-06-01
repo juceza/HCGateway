@@ -15,10 +15,13 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
-class HCGatewayApp : Application(), Configuration.Provider {
-
+class HCGatewayApp :
+    Application(),
+    Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
     @Inject lateinit var preferencesRepository: PreferencesRepository
+
     @Inject lateinit var syncNotificationManager: SyncNotificationManager
 
     override fun onCreate() {
@@ -36,7 +39,8 @@ class HCGatewayApp : Application(), Configuration.Provider {
         CoroutineScope(Dispatchers.IO).launch {
             val mode = preferencesRepository.themeMode.first()
             androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-                dev.shuchir.hcgateway.ui.theme.themeModeToNightMode(mode)
+                dev.shuchir.hcgateway.ui.theme
+                    .themeModeToNightMode(mode),
             )
         }
     }
@@ -61,7 +65,9 @@ class HCGatewayApp : Application(), Configuration.Provider {
     }
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() =
+            Configuration
+                .Builder()
+                .setWorkerFactory(workerFactory)
+                .build()
 }

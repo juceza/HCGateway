@@ -14,12 +14,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import retrofit2.Response
 import timber.log.Timber
@@ -27,11 +26,14 @@ import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncRepository @Inject constructor(
+class SyncRepository
+@Inject
+constructor(
     private val healthConnectRepository: HealthConnectRepository,
     private val apiService: ApiService,
     private val preferencesRepository: PreferencesRepository,
@@ -47,12 +49,16 @@ class SyncRepository @Inject constructor(
 
     private var syncJob: Job? = null
     private var currentTypeResults = mutableListOf<TypeSyncResult>()
+
     @Volatile private var currentRecordCount = 0
 
     val isSyncing: Boolean get() = syncJob?.isActive == true
 
     /** Returns true if the sync succeeded (or was skipped); false if it failed and is worth retrying. */
-    suspend fun sync(customStartDate: LocalDate? = null, customEndDate: LocalDate? = null): Boolean {
+    suspend fun sync(
+        customStartDate: LocalDate? = null,
+        customEndDate: LocalDate? = null,
+    ): Boolean {
         if (isSyncing) return true
         return performSync(customStartDate, customEndDate)
     }
@@ -85,17 +91,19 @@ class SyncRepository @Inject constructor(
 
     // SecurityException = the type isn't granted/supported by Health Connect, so skip it
     // quietly rather than counting it as a failure.
-    private fun Throwable.isUnsupportedType(): Boolean =
-        this is SecurityException || cause is SecurityException ||
-            message?.contains("SecurityException") == true
+    private fun Throwable.isUnsupportedType(): Boolean = this is SecurityException || cause is SecurityException ||
+        message?.contains("SecurityException") == true
 
     // Connectivity drops and server-side (5xx) errors are transient and retriable —
     // log at warn so they don't pollute Sentry. Client errors (4xx) are real bugs.
-    private fun Throwable.isTransientFailure(): Boolean =
-        this is IOException || (this is HttpException && code() >= 500)
+    private fun Throwable.isTransientFailure(): Boolean = this is IOException || (this is HttpException && code() >= 500)
 
     // Records a per-type sync failure: warn for transient causes, error otherwise.
-    private fun logTypeFailure(typeName: String, e: Throwable, failedTypes: MutableList<String>) {
+    private fun logTypeFailure(
+        typeName: String,
+        e: Throwable,
+        failedTypes: MutableList<String>,
+    ) {
         if (e.isTransientFailure()) {
             Timber.w(e, "$typeName failed (transient)")
         } else {
@@ -104,7 +112,10 @@ class SyncRepository @Inject constructor(
         synchronized(failedTypes) { failedTypes.add(typeName) }
     }
 
-    private suspend fun performSync(customStartDate: LocalDate?, customEndDate: LocalDate?): Boolean {
+    private suspend fun performSync(
+        customStartDate: LocalDate?,
+        customEndDate: LocalDate?,
+    ): Boolean {
         cancelled = false
 
         if (!healthConnectRepository.hasAllPermissions()) {
@@ -127,8 +138,11 @@ class SyncRepository @Inject constructor(
             if (customStartDate != null) {
                 Timber.i("Force sync: $customStartDate → ${customEndDate ?: LocalDate.now()}")
                 val startTime = customStartDate.atStartOfDay(ZoneId.of("UTC")).toInstant()
-                val endTime = (customEndDate ?: LocalDate.now()).plusDays(1)
-                    .atStartOfDay(ZoneId.of("UTC")).toInstant()
+                val endTime =
+                    (customEndDate ?: LocalDate.now())
+                        .plusDays(1)
+                        .atStartOfDay(ZoneId.of("UTC"))
+                        .toInstant()
                 totalRecords = fullSync(startTime, endTime, typeResults, failedTypes)
             } else if (settings.fullSyncMode) {
                 Timber.i("Full sync (${DEFAULT_LOOKBACK_DAYS}d lookback)")
@@ -189,71 +203,85 @@ class SyncRepository @Inject constructor(
         // uploads them in parallel. This overlaps HC API reads with API server uploads.
         // All types run concurrently — empty types complete instantly.
         coroutineScope {
-            RECORD_TYPES.map { type ->
-                async(kotlinx.coroutines.Dispatchers.IO) {
-                    try {
-                        val channel = kotlinx.coroutines.channels.Channel<Pair<com.google.gson.JsonElement, Int>>(1)
-                        var typeTotal = 0
+            RECORD_TYPES
+                .map { type ->
+                    async(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val channel = kotlinx.coroutines.channels.Channel<Pair<com.google.gson.JsonElement, Int>>(1)
+                            var typeTotal = 0
 
-                        var readerError: Exception? = null
+                            var readerError: Exception? = null
 
-                        // Producer: read pages from Health Connect
-                        val reader = launch {
-                            try {
-                                healthConnectRepository.readRecordsPaged(
-                                    type.recordClass, startTime, endTime,
-                                ) { page ->
-                                    coroutineContext.ensureActive()
-                                    val json = healthConnectRepository.recordsToJson(page)
-                                    typeTotal += page.size
-                                    channel.send(json to page.size)
+                            // Producer: read pages from Health Connect
+                            val reader =
+                                launch {
+                                    try {
+                                        healthConnectRepository.readRecordsPaged(
+                                            type.recordClass,
+                                            startTime,
+                                            endTime,
+                                        ) { page ->
+                                            coroutineContext.ensureActive()
+                                            val json = healthConnectRepository.recordsToJson(page)
+                                            typeTotal += page.size
+                                            channel.send(json to page.size)
+                                        }
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        readerError = e
+                                    } finally {
+                                        channel.close()
+                                    }
                                 }
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                readerError = e
-                            } finally {
-                                channel.close()
+
+                            // Consumer: upload pages to API server
+                            for ((json, pageSize) in channel) {
+                                coroutineContext.ensureActive()
+                                apiService.syncRecords(type.name, SyncRequest(json)).orThrow()
+                                val synced = totalRecordsAtomic.addAndGet(pageSize)
+                                currentRecordCount = synced
+                                updateSyncState(
+                                    SyncState.Syncing(
+                                        type.name,
+                                        completed.get(),
+                                        RECORD_TYPES.size,
+                                        synced,
+                                    ),
+                                )
+                            }
+
+                            reader.join()
+                            readerError?.let { throw it }
+
+                            if (typeTotal > 0) {
+                                Timber.i("${type.name}: $typeTotal records")
+                                synchronized(typeResults) {
+                                    typeResults.add(TypeSyncResult(type.name, typeTotal))
+                                }
+                            }
+                        } catch (e: CancellationException) {
+                            // Cancellation isn't a type failure — rethrow so it propagates to
+                            // awaitAll() instead of being logged as an error and marked failed.
+                            throw e
+                        } catch (e: Exception) {
+                            if (e.isUnsupportedType()) {
+                                Timber.i("${type.name}: skipped (unsupported)")
+                            } else {
+                                logTypeFailure(type.name, e, failedTypes)
                             }
                         }
-
-                        // Consumer: upload pages to API server
-                        for ((json, pageSize) in channel) {
-                            coroutineContext.ensureActive()
-                            apiService.syncRecords(type.name, SyncRequest(json)).orThrow()
-                            val synced = totalRecordsAtomic.addAndGet(pageSize)
-                            currentRecordCount = synced
-                            updateSyncState(SyncState.Syncing(
-                                type.name, completed.get(), RECORD_TYPES.size, synced,
-                            ))
-                        }
-
-                        reader.join()
-                        readerError?.let { throw it }
-
-                        if (typeTotal > 0) {
-                            Timber.i("${type.name}: $typeTotal records")
-                            synchronized(typeResults) {
-                                typeResults.add(TypeSyncResult(type.name, typeTotal))
-                            }
-                        }
-                    } catch (e: CancellationException) {
-                        // Cancellation isn't a type failure — rethrow so it propagates to
-                        // awaitAll() instead of being logged as an error and marked failed.
-                        throw e
-                    } catch (e: Exception) {
-                        if (e.isUnsupportedType()) {
-                            Timber.i("${type.name}: skipped (unsupported)")
-                        } else {
-                            logTypeFailure(type.name, e, failedTypes)
-                        }
+                        val done = completed.incrementAndGet()
+                        updateSyncState(
+                            SyncState.Syncing(
+                                type.name,
+                                done,
+                                RECORD_TYPES.size,
+                                totalRecordsAtomic.get(),
+                            ),
+                        )
                     }
-                    val done = completed.incrementAndGet()
-                    updateSyncState(SyncState.Syncing(
-                        type.name, done, RECORD_TYPES.size, totalRecordsAtomic.get(),
-                    ))
-                }
-            }.awaitAll()
+                }.awaitAll()
         }
 
         // Only refresh the token when every supported type succeeded. If we
@@ -296,33 +324,39 @@ class SyncRepository @Inject constructor(
         updateSyncState(SyncState.Syncing("", 0, totalTypes))
 
         coroutineScope {
-            result.upsertedRecords.map { (typeName, records) ->
-                async {
-                    if (records.isNotEmpty()) {
-                        try {
-                            val json = healthConnectRepository.recordsToJson(records)
-                            apiService.syncRecords(typeName, SyncRequest(json)).orThrow()
-                            totalRecordsAtomic.addAndGet(records.size)
-                            currentRecordCount = totalRecordsAtomic.get()
-                            synchronized(typeResults) {
-                                typeResults.add(TypeSyncResult(typeName, records.size))
-                            }
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            if (e.isUnsupportedType()) {
-                                Timber.i("$typeName: skipped (unsupported)")
-                            } else {
-                                logTypeFailure(typeName, e, failedTypes)
+            result.upsertedRecords
+                .map { (typeName, records) ->
+                    async {
+                        if (records.isNotEmpty()) {
+                            try {
+                                val json = healthConnectRepository.recordsToJson(records)
+                                apiService.syncRecords(typeName, SyncRequest(json)).orThrow()
+                                totalRecordsAtomic.addAndGet(records.size)
+                                currentRecordCount = totalRecordsAtomic.get()
+                                synchronized(typeResults) {
+                                    typeResults.add(TypeSyncResult(typeName, records.size))
+                                }
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                if (e.isUnsupportedType()) {
+                                    Timber.i("$typeName: skipped (unsupported)")
+                                } else {
+                                    logTypeFailure(typeName, e, failedTypes)
+                                }
                             }
                         }
+                        val done = completed.incrementAndGet()
+                        updateSyncState(
+                            SyncState.Syncing(
+                                typeName,
+                                done,
+                                totalTypes,
+                                totalRecordsAtomic.get(),
+                            ),
+                        )
                     }
-                    val done = completed.incrementAndGet()
-                    updateSyncState(SyncState.Syncing(
-                        typeName, done, totalTypes, totalRecordsAtomic.get(),
-                    ))
-                }
-            }.awaitAll()
+                }.awaitAll()
         }
 
         totalRecords = totalRecordsAtomic.get()
@@ -338,15 +372,20 @@ class SyncRepository @Inject constructor(
         return totalRecords
     }
 
-    suspend fun deleteRecords(recordType: String, uuids: List<String>) {
+    suspend fun deleteRecords(
+        recordType: String,
+        uuids: List<String>,
+    ) {
         try {
             apiService.deleteRecords(recordType, DeleteRequest(uuids))
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
 
         val typeInfo = RECORD_TYPES.find { it.name == recordType } ?: return
         try {
             healthConnectRepository.deleteRecordsByIds(typeInfo.recordClass, uuids)
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+        }
     }
 
     fun resetState() {

@@ -16,18 +16,18 @@
 // Charts reuse `dashboard.toSparklinePoints` (already keeps amplitude min/max)
 // and the `transforms` bucketing — this module does NOT re-implement bucketing.
 
-import type { HealthRecord } from "./api";
-import type { TimeWindow } from "./transforms";
+import type { HealthRecord } from './api';
+import type { TimeWindow } from './transforms';
 
 const MS_PER_DAY = 86_400_000;
 
 /** The window-selector segments. */
-export type WindowPreset = "day" | "week" | "month";
+export type WindowPreset = 'day' | 'week' | 'month';
 
 export const WINDOW_PRESETS: readonly WindowPreset[] = [
-  "day",
-  "week",
-  "month",
+  'day',
+  'week',
+  'month',
 ] as const;
 
 /** Span, in days, each preset covers. The default view is the 7-day "week". */
@@ -85,7 +85,7 @@ export function normalizeWindowSearch(
 
 /** A finite ISO timestamp (round-tripped to canonical UTC) or `null`. */
 function isoOrNull(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+  if (typeof value !== 'string') return null;
   const ms = Date.parse(value);
   return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
@@ -129,7 +129,7 @@ export function toTableRows(records: HealthRecord[]): TableRow[] {
   }));
 }
 
-export type SortDirection = "asc" | "desc";
+export type SortDirection = 'asc' | 'desc';
 
 /**
  * Sort rows by `start` (ISO-8601 strings sort lexicographically, TechSpec
@@ -137,12 +137,12 @@ export type SortDirection = "asc" | "desc";
  */
 export function sortRows(
   rows: TableRow[],
-  direction: SortDirection = "desc",
+  direction: SortDirection = 'desc',
 ): TableRow[] {
   const sorted = [...rows].sort((a, b) =>
     a.start < b.start ? -1 : a.start > b.start ? 1 : 0,
   );
-  return direction === "asc" ? sorted : sorted.reverse();
+  return direction === 'asc' ? sorted : sorted.reverse();
 }
 
 /** Default rows per page for the client-side pagination. */
@@ -178,16 +178,16 @@ export function paginate(
  * and per-step/second activity streams.
  */
 export const HEAVY_TYPES: ReadonlySet<string> = new Set([
-  "HeartRate",
-  "RestingHeartRate",
-  "Steps",
-  "Distance",
-  "ActiveCaloriesBurned",
-  "TotalCaloriesBurned",
-  "Speed",
-  "Power",
-  "StepsCadence",
-  "CyclingPedalingCadence",
+  'HeartRate',
+  'RestingHeartRate',
+  'Steps',
+  'Distance',
+  'ActiveCaloriesBurned',
+  'TotalCaloriesBurned',
+  'Speed',
+  'Power',
+  'StepsCadence',
+  'CyclingPedalingCadence',
 ]);
 
 /** Span beyond which a heavy type triggers the wide-window notice (days). */
@@ -215,14 +215,14 @@ export function prettyJson(record: HealthRecord): string {
  * for `end`; render those as an em dash rather than "Invalid Date".
  */
 export function formatTimestamp(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return '—';
   const ms = Date.parse(iso);
-  if (Number.isNaN(ms)) return "—";
-  return new Date(ms).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  if (Number.isNaN(ms)) return '—';
+  return new Date(ms).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }

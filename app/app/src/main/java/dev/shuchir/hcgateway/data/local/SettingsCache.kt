@@ -8,15 +8,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SettingsCache @Inject constructor(
+class SettingsCache
+@Inject
+constructor(
     preferencesRepository: PreferencesRepository,
 ) {
     @Volatile var token: String = ""
         private set
+
     @Volatile var refreshToken: String = ""
         private set
+
     @Volatile var apiBase: String = ""
         private set
+
     @Volatile var useHttps: Boolean = true
         private set
 

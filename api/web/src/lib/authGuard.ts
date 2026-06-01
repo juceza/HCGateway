@@ -4,12 +4,12 @@
 // delegate every decision here so the logic is unit-testable and lands under
 // the `src/lib/**` coverage gate. Typed guard with `?redirect=`.
 
-import { AuthError } from "./api";
-import { type AuthState, getAuth } from "./auth";
+import { AuthError } from './api';
+import { type AuthState, getAuth } from './auth';
 
 /** The login redirect target, carrying the originally-requested path. */
 export interface LoginRedirect {
-  to: "/login";
+  to: '/login';
   search: { redirect: string };
 }
 
@@ -26,7 +26,7 @@ export function guardRedirect(
   auth: AuthState | null = getAuth(),
 ): LoginRedirect | null {
   if (auth) return null;
-  return { to: "/login", search: { redirect: href } };
+  return { to: '/login', search: { redirect: href } };
 }
 
 /**
@@ -36,8 +36,8 @@ export function guardRedirect(
  * login; every other error returns `null` and is left to normal error UI. This
  * is what prevents a "phantom logout" on recoverable 401s.
  */
-export function authErrorRedirect(error: unknown): { to: "/login" } | null {
-  return error instanceof AuthError ? { to: "/login" } : null;
+export function authErrorRedirect(error: unknown): { to: '/login' } | null {
+  return error instanceof AuthError ? { to: '/login' } : null;
 }
 
 /**
@@ -46,7 +46,7 @@ export function authErrorRedirect(error: unknown): { to: "/login" } | null {
  * `https:` of a proxied deploy) suppresses it.
  */
 export function isInsecureOrigin(protocol: string): boolean {
-  return protocol === "http:";
+  return protocol === 'http:';
 }
 
 /**
@@ -56,8 +56,8 @@ export function isInsecureOrigin(protocol: string): boolean {
  * otherwise falls back to the dashboard root.
  */
 export function postLoginTarget(redirect?: string): string {
-  if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+  if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
     return redirect;
   }
-  return "/";
+  return '/';
 }

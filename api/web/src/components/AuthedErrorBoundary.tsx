@@ -1,7 +1,8 @@
-import { useEffect } from "react";
-import { type ErrorComponentProps, useNavigate } from "@tanstack/react-router";
+import { useEffect } from 'react';
 
-import { authErrorRedirect } from "@/lib/authGuard";
+import { type ErrorComponentProps, useNavigate } from '@tanstack/react-router';
+
+import { authErrorRedirect } from '@/lib/authGuard';
 
 /**
  * Error boundary for the guarded `_authed` subtree. An `AuthError` (a failed
@@ -20,10 +21,10 @@ export function AuthedErrorBoundary({ error }: ErrorComponentProps) {
   if (target) return null;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-2 p-8 text-center">
-      <h1 className="text-xl font-semibold">Something went wrong</h1>
-      <p className="text-muted-foreground">
-        We couldn't load your data. Please try again.
+    <main className='mx-auto flex min-h-dvh max-w-xl flex-col items-center justify-center gap-2 p-8 text-center'>
+      <h1 className='text-xl font-semibold'>Something went wrong</h1>
+      <p className='text-muted-foreground'>
+        We couldn&apos;t load your data. Please try again.
       </p>
     </main>
   );

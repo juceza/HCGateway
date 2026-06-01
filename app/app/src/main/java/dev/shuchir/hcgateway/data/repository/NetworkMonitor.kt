@@ -14,40 +14,49 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NetworkMonitor @Inject constructor(
+class NetworkMonitor
+@Inject
+constructor(
     @ApplicationContext private val context: Context,
 ) {
-    val isConnected: Flow<Boolean> = callbackFlow {
-        val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+    val isConnected: Flow<Boolean> =
+        callbackFlow {
+            val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
 
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                trySend(true)
+            val callback =
+                object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        trySend(true)
+                    }
+
+                    override fun onLost(network: Network) {
+                        trySend(false)
+                    }
+
+                    override fun onCapabilitiesChanged(
+                        network: Network,
+                        caps: NetworkCapabilities,
+                    ) {
+                        val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        trySend(hasInternet)
+                    }
+                }
+
+            val request =
+                NetworkRequest
+                    .Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build()
+
+            connectivityManager.registerNetworkCallback(request, callback)
+
+            // Emit initial state
+            val activeNetwork = connectivityManager.activeNetwork
+            val activeCaps = connectivityManager.getNetworkCapabilities(activeNetwork)
+            trySend(activeCaps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
+
+            awaitClose {
+                connectivityManager.unregisterNetworkCallback(callback)
             }
-
-            override fun onLost(network: Network) {
-                trySend(false)
-            }
-
-            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
-                val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                trySend(hasInternet)
-            }
-        }
-
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        connectivityManager.registerNetworkCallback(request, callback)
-
-        // Emit initial state
-        val activeNetwork = connectivityManager.activeNetwork
-        val activeCaps = connectivityManager.getNetworkCapabilities(activeNetwork)
-        trySend(activeCaps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
-
-        awaitClose {
-            connectivityManager.unregisterNetworkCallback(callback)
-        }
-    }.distinctUntilChanged()
+        }.distinctUntilChanged()
 }
