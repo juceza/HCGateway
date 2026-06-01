@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .env
 .git
+
+# Web UI build artifacts — node_modules and dist are produced inside the Bun
+# build stage, never shipped from the host build context (see Dockerfile).
+web/node_modules
+web/dist

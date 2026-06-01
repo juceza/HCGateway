@@ -8,6 +8,7 @@ See @README.md for the user-facing overview. Dependencies are pinned in `app/gra
 
 - **Android app**: `app/` — Jetpack Compose, Kotlin, Hilt DI, MVVM
 - **API server**: `api/` — Python Flask + MongoDB (this branch keeps the upstream stack)
+- **Web UI**: `api/web/` — optional read-only React SPA (Vite + TS, TanStack Router/Query, shadcn/ui + Recharts), served by the same Flask process. See [Web UI](#web-ui-non-obvious).
 
 ### App structure
 
@@ -69,6 +70,17 @@ app/app/src/main/java/dev/shuchir/hcgateway/
 - **Flask debug** is parsed via `_env_bool` (only `1/true/yes/on` are truthy) — `APP_DEBUG=false` actually disables it. Production runs under **gunicorn** (Dockerfile `CMD`); `app.run` is dev-only under `__main__`. **v1 API was deleted** (it accepted an unauthenticated `userid`). Rate limiting via Flask-Limiter on `/login` (5/min) and `/refresh` (10/min) — in-memory store (per-worker; fine for self-host).
 - **App stores tokens encrypted at rest** (`TokenCrypto`, AES-256-GCM via Android Keystore). All token I/O goes through `PreferencesRepository.saveTokens` (encrypts) and the `settings` flow (decrypts) — don't read/write `UserPreferences.TOKEN`/`REFRESH_TOKEN` directly. Cleartext HTTP is still allowed for LAN self-hosting (`res/xml/network_security_config.xml`), but HTTPS is default and the login screen warns when HTTP is selected.
 
+## Web UI (non-obvious)
+
+The Web UI (`api/web/`) is an optional read-only dashboard over the existing `/api/v2` surface — no backend route changes. Build with `bun run build` (emits `dist/`); dev with `bun run dev` (Vite proxies `/api/*` to Flask `http://localhost:6644`, override `VITE_API_PROXY_TARGET`).
+
+- **Refresh-on-401, not 403.** Unlike the Android app's OkHttp interceptor (refreshes on **403**), the SPA's `apiFetch` (`src/lib/api.ts`) refreshes on **401**: access-token expiry returns 401 here. It refreshes exactly once via a **shared in-flight promise** (concurrent 401s coalesce); a 403 or a failed refresh clears auth and bounces to `/login` (`AuthError`). Putting refresh on the wrong status would cause a "phantom logout."
+- **`displayToCollection` casing gotcha.** The API's display names are PascalCase (`HeartRate`) but the `/fetch/<method>` collections are camelCase (`heartRate`). `displayToCollection(name)` in `src/lib/recordTypes.ts` (lower-first) is the **single** casing helper — every fetch routes through `fetchRecords`, which applies it. Don't reimplement the casing inline.
+- **Single-image, conditional-`WEB_DIST` build.** The SPA ships inside the **same Docker image** as the API: a Bun stage in `api/Dockerfile` builds `dist/`, copies it to `/app/web/dist`, and sets `ENV WEB_DIST=/app/web/dist`. `main.py` registers the catch-all web blueprint **only when `WEB_DIST` is a directory** (`os.path.isdir`), so a pure-API deploy (`WEB_DIST` unset) is behaviour-identical — no blueprint registered. The Docker **context stays `./api`** (CI-preserving; `web/` in the Dockerfile = `api/web/`), so `dist/` is copied into the `api/` context rather than the build context moving to the repo root. `docker-compose.yml` uses a prebuilt `image:` with no `build:`, so `docker compose up --build` does **not** rebuild — `docker build -f api/Dockerfile ./api` does.
+- **`/api/*` is not shadowed.** The catch-all SPA blueprint (`api/static_web.py`) serves `dist/` with an `index.html` fallback for client-side routes, but `abort(404)`s any path starting with `api/` so an unknown `/api/...` request never leaks the SPA shell or masks the API's 401/403 semantics. It's registered **after** `init_v2` so the specific `/api/v2/...` rules always win.
+- **Sovereignty framing = ownership/control, NOT zero-knowledge.** Copy must not claim zero-knowledge: record `data` is decrypted **server-side** (the UI never touches the key). Frame it as "your data, on your server, not Google's". Sovereignty copy lives in `src/lib/shell.ts`.
+- **No backend tests-only suite caveat.** `api/tests/` (added in the SPA-serving task) is the first Python test suite; `conftest.py` sets dummy `MONGO_URI`/`DATA_MASTER_KEY` because `routes.py`/`crypto.py` need them at import. Run with `uv run pytest` from `api/`.
+
 ## Sync
 
 - **fullSync**: all 41 record types in parallel via `async(Dispatchers.IO)`; each streams pages (1000 records) through a Channel — reader produces, consumer uploads. Memory bounded.
@@ -91,3 +103,4 @@ app/app/src/main/java/dev/shuchir/hcgateway/
 ## Conventions
 
 - Keep responses concise.
+- Every text that is generated must be in english. (Files that are in .gitignore can be in the users language)

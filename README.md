@@ -11,6 +11,7 @@ The platform consists of two parts:
 
 - A **REST API/server** (`api/`) — Python Flask + MongoDB.
 - A **mobile application** (`app/`) — native Android (Kotlin + Jetpack Compose) that periodically syncs Health Connect data to the server.
+- An optional **web dashboard** (`api/web/`) — a read-only React SPA, served by the same Flask process, for viewing your synced data in a browser (see [Web UI](#web-ui)).
 
 The platform supports **two-way sync**: you can read your data through the REST API and also push changes back into the device's Health Connect store remotely.
 
@@ -113,6 +114,46 @@ The mobile application is a native Android app written in **Kotlin** with **Jetp
 
 Firebase Cloud Messaging is used only to let a self-hosted server trigger a sync remotely (push), and is optional.
 
+## Web UI
+
+The Web UI (`api/web/`) is an **optional, read-only** browser dashboard for the data the app syncs. It is a React SPA (Vite + TypeScript, TanStack Router/Query, shadcn/ui charts) that logs in with your existing HCGateway account and visualizes your records: an overview-first home with per-type counts and sparklines for the high-value types, drilling into time-window-bound detail views with trend charts (and a readable table + JSON fallback for the rest). It consumes the **existing `/api/v2` REST API only — no backend changes** — and reads, never writes (no push/delete in V1).
+
+**Your data, on your server — not Google's.** The dashboard is about data **ownership and control**, not zero-knowledge: record `data` is decrypted **server-side** by Flask (envelope encryption with `DATA_MASTER_KEY`; see [Self Hosting](#self-hosting)), so the server — and therefore its operator — can read it. Self-host if you want sole control, and always connect over HTTPS.
+
+### Packaging
+
+The UI ships **inside the same single Docker image** as the API — there is no separate web container. A Bun build stage in `api/Dockerfile` compiles the SPA to a static `dist/`, copies it into the runtime image, and sets `WEB_DIST=/app/web/dist`. Flask serves that directory via a catch-all blueprint (`api/static_web.py`) **only when `WEB_DIST` points at a real directory**, with an `index.html` fallback for client-side routes. When `WEB_DIST` is unset or missing, no blueprint is registered and the server behaves as a **pure API** — so the API-only deployment is unaffected. The published image already bundles the UI, so a standard `docker-compose up -d` (see [Self Hosting](#self-hosting)) serves it at `http://localhost:6644/` alongside the API at `/api/v2/*`.
+
+### Building it yourself
+
+The SPA is built automatically by the Docker image (see above). To build it standalone (requires [Bun](https://bun.sh/)):
+
+```bash
+cd api/web
+bun install          # or: bun install --frozen-lockfile (matches the Dockerfile)
+bun run build         # regenerates routeTree.gen.ts, type-checks, emits dist/
+```
+
+Point a pure-`uv` server at the result by exporting `WEB_DIST=$(pwd)/dist` before starting Flask (the [Manual](#manual) self-host path), or build the Docker image, which does all of this for you:
+
+```bash
+docker build -f api/Dockerfile -t hcgateway:local api/
+```
+
+> [!NOTE]
+> The Docker **build context is `./api`** (preserved deliberately), which is why `api/web/` is referenced as `web/` inside the Dockerfile. `docker-compose.yml` pulls a prebuilt `image:` rather than building locally, so `docker compose up --build` does **not** rebuild it — use the `docker build` command above to build from source.
+
+### Development
+
+Run the SPA against a running API with the Vite dev server:
+
+```bash
+cd api/web
+bun run dev           # Vite dev server on http://localhost:5173
+```
+
+The dev server **proxies `/api/*` to Flask** at `http://localhost:6644` (override with the `VITE_API_PROXY_TARGET` env var), keeping requests same-origin so the auth/Bearer flow behaves exactly as in production (no CORS). Start the API separately (see [Self Hosting → Manual](#manual)). Unit tests run with `bun run test` (Vitest).
+
 ## Self Hosting
 
 You can self-host the server and database for full control. If you want to trigger pushes from your own server, you must also build the mobile app yourself with your own Firebase configuration (see [Firebase](#firebase)).
@@ -154,6 +195,7 @@ Firebase is only required if you want your server to trigger remote syncs. To se
 - Copy `.env.example` to `.env` and fill in the values (including `DATA_MASTER_KEY`).
 - (Optional, for push) Place `service-account.json` in `api/`.
 - Development: `uv run python main.py`. Production: run under a WSGI server, e.g. `uv run gunicorn --bind 0.0.0.0:6644 --workers 2 main:app`.
+- (Optional, for the [Web UI](#web-ui)) Build the SPA and export `WEB_DIST` to the resulting `dist/` before starting Flask — e.g. `cd web && bun install && bun run build && cd .. && WEB_DIST=$(pwd)/web/dist uv run python main.py`. Leave `WEB_DIST` unset to run API-only.
 
 ### Mobile Application
 

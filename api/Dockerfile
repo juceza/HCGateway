@@ -1,3 +1,26 @@
+# ---------------------------------------------------------------------------
+# Stage 1: build the Web UI SPA (api/web/) into a static dist/ with Bun.
+#
+# Confined to this stage so node_modules and the Bun toolchain never reach the
+# runtime image — only the compiled dist/ is copied across.
+# The CI build context stays ./api, so `web/` here resolves to api/web/.
+# ---------------------------------------------------------------------------
+FROM oven/bun:1 AS web
+
+WORKDIR /web
+
+# Install dependencies first (cached layer) from the committed lockfile.
+COPY web/package.json web/bun.lock ./
+RUN bun install --frozen-lockfile
+
+# Then build the SPA. `bun run build` regenerates the gitignored routeTree.gen.ts
+# (tsr generate) and emits dist/ (see api/web/package.json).
+COPY web/ ./
+RUN bun run build
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime — Python API served by gunicorn, plus the built SPA.
+# ---------------------------------------------------------------------------
 # Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
@@ -25,6 +48,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Then, add the rest of the project source code
 COPY . /app
+
+# Drop the built SPA in and point the Flask blueprint at it. main.py registers
+# the catch-all web blueprint only when WEB_DIST is a directory, so a build
+# without a populated dist/ (or WEB_DIST overridden to empty) still starts as a
+# pure API. See static_web.py.
+COPY --from=web /web/dist /app/web/dist
+ENV WEB_DIST=/app/web/dist
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"

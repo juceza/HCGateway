@@ -70,4 +70,23 @@ flask_session/
 service-account.json
 google-services.json
 
+# Python test artifacts (api/)
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
 .local-files
+.compozy
+.claude/skills
+
+# HCGateway Web UI (api/web) — build artifacts and generated route tree.
+# node_modules is also covered by the global node_modules/ rule above; listed
+# explicitly here so the web build outputs are obvious in one place.
+api/web/node_modules/
+api/web/dist/
+api/web/src/routeTree.gen.ts
+api/web/coverage/
+api/web/.tanstack/
+*.local
+vite.config.ts.timestamp-*

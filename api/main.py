@@ -47,6 +47,15 @@ if _origins:
 from apiVersions.v2 import init_app as init_v2
 init_v2(app)
 
+# Serve the built Web UI SPA from the same Flask process, but only when a built
+# dist/ is present (WEB_DIST points at a directory). Registered AFTER the API so
+# the catch-all never shadows /api/*; a pure-API deploy (WEB_DIST unset/missing)
+# behaves exactly as before — no blueprint registered.
+_web_dist = os.environ.get("WEB_DIST")
+if _web_dist and os.path.isdir(_web_dist):
+    from static_web import create_web_blueprint
+    app.register_blueprint(create_web_blueprint(_web_dist))
+
 
 if __name__ == "__main__":
     # Development entrypoint only. Production runs under gunicorn (see Dockerfile),
