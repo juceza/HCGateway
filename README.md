@@ -174,6 +174,7 @@ Firebase is only required if you want your server to trigger remote syncs. To se
 > - **Set a strong, unique `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD`** in `api/.env` (the defaults in `.env.example` are placeholders). MongoDB is **not** published to the host/LAN by `docker-compose.yml` — keep it that way.
 > - **Generate a `DATA_MASTER_KEY`** (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) and keep it secret and backed up separately. It encrypts every user's data key; **lose it and all stored data is unrecoverable**, leak it together with the database and the data can be decrypted.
 > - **Keep `APP_DEBUG=false`.** Flask debug mode exposes a remote code-execution debugger.
+> - **Set `ALLOW_REGISTRATION=false`** if you don't want anyone with access to the app/API to create new accounts. New accounts are auto-created on first login by default; with the flag off, only existing accounts can log in.
 > - **Do not expose the API directly to the internet.** Keep it on your LAN/VPN, or put a TLS-terminating reverse proxy in front and serve over **HTTPS** only (bind the API to `127.0.0.1` in that case).
 > - The encryption protects against a database-only leak, **not** a full server compromise (an attacker with both the DB and the server environment can decrypt).
 

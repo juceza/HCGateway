@@ -15,6 +15,7 @@ from flask_limiter.util import get_remote_address
 from pyfcm import FCMNotification
 
 from crypto import fernet_for, hash_token, new_wrapped_dek
+from utils import env_bool
 
 # Load environment before any module-level code that reads it (the Mongo client
 # below reads MONGO_URI at construction time).
@@ -22,6 +23,11 @@ load_dotenv()
 
 mongo = pymongo.MongoClient(os.environ["MONGO_URI"])
 ph = PasswordHasher()
+
+# Whether /login may create a new account when the username is unknown. Defaults
+# to True for backward compatibility; self-hosters who expose the app to others
+# can set ALLOW_REGISTRATION=false to lock signups down to existing accounts.
+ALLOW_REGISTRATION = env_bool("ALLOW_REGISTRATION", True)
 
 v2 = Blueprint("v2", __name__, url_prefix="/api/v2/")
 
@@ -113,6 +119,10 @@ def login():
     user = usrStore.find_one({"username": username})
 
     if not user:
+        # Account auto-creation on first login can be disabled by self-hosters
+        # who don't want anyone with app access to register new accounts.
+        if not ALLOW_REGISTRATION:
+            return jsonify({"error": "registration is disabled"}), 403
         session = _issue_session()
         usrStore.insert_one(
             {

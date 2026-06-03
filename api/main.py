@@ -5,19 +5,9 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
+from utils import env_bool
+
 load_dotenv()
-
-
-def _env_bool(name, default=False):
-    """Parse a boolean env var. Only 1/true/yes/on (any case) are truthy.
-
-    The previous `bool(os.environ.get(...))` treated the string "False" as
-    True, which silently enabled Flask debug mode in production.
-    """
-    v = os.environ.get(name)
-    if v is None:
-        return default
-    return v.strip().lower() in ("1", "true", "yes", "on")
 
 
 def _scrub_event(event, hint):
@@ -69,5 +59,5 @@ if __name__ == "__main__":
     app.run(
         host=os.environ.get("APP_HOST", "0.0.0.0"),
         port=int(os.environ.get("APP_PORT", 6644)),
-        debug=_env_bool("APP_DEBUG", False),
+        debug=env_bool("APP_DEBUG", False),
     )

@@ -1,3 +1,11 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "python.defaultInterpreterPath": "${workspaceFolder}/api/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/api"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "cursorpyright.analysis.autoImportCompletions": true,
+    "cursorpyright.analysis.extraPaths": [
+        "${workspaceFolder}/api"
+    ]
 }
