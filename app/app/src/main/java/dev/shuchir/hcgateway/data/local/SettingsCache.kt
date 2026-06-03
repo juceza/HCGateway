@@ -37,4 +37,18 @@ constructor(
             }
         }
     }
+
+    /**
+     * Updates the in-memory token pair immediately after a rotation, ahead of the DataStore
+     * write propagating back through the [preferencesRepository] flow. Lets concurrent refresh
+     * callers observe the rotated token without issuing a second `/refresh`.
+     */
+    @Synchronized
+    fun updateTokens(
+        token: String,
+        refreshToken: String,
+    ) {
+        this.token = token
+        this.refreshToken = refreshToken
+    }
 }

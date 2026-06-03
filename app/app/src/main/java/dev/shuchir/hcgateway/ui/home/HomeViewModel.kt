@@ -9,7 +9,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.shuchir.hcgateway.data.local.PreferencesRepository
 import dev.shuchir.hcgateway.data.local.UserSettings
 import dev.shuchir.hcgateway.data.remote.ApiService
-import dev.shuchir.hcgateway.data.remote.RefreshRequest
 import dev.shuchir.hcgateway.data.repository.HealthConnectRepository
 import dev.shuchir.hcgateway.data.repository.NetworkMonitor
 import dev.shuchir.hcgateway.data.repository.SyncRepository
@@ -120,17 +119,14 @@ constructor(
                 _serverReachable.value = false
                 return@launch
             }
+            // Probe with an authenticated request instead of calling /refresh directly:
+            // the OkHttp auth path (AuthInterceptor/AuthAuthenticator → TokenRefresher) renews
+            // the access token transparently when needed, so reachability no longer races the
+            // server-side refresh-token rotation. The auth retry adds round trips, hence 8s.
             val reachable =
                 try {
-                    withTimeout(5000) {
-                        val response = apiService.refresh(RefreshRequest(settings.refreshToken))
-                        if (response.isSuccessful && response.body() != null) {
-                            val body = response.body()!!
-                            preferencesRepository.saveTokens(body.token, body.refresh)
-                            true
-                        } else {
-                            false
-                        }
+                    withTimeout(8000) {
+                        apiService.getCounts().isSuccessful
                     }
                 } catch (_: Exception) {
                     false

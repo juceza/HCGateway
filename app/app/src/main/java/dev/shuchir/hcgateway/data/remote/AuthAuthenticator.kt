@@ -1,8 +1,5 @@
 package dev.shuchir.hcgateway.data.remote
 
-import dev.shuchir.hcgateway.data.local.PreferencesRepository
-import dev.shuchir.hcgateway.data.local.SettingsCache
-import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
@@ -12,9 +9,7 @@ import javax.inject.Inject
 class AuthAuthenticator
 @Inject
 constructor(
-    private val settingsCache: SettingsCache,
-    private val preferencesRepository: PreferencesRepository,
-    private val apiServiceProvider: dagger.Lazy<ApiService>,
+    private val tokenRefresher: TokenRefresher,
 ) : Authenticator {
     override fun authenticate(
         route: Route?,
@@ -23,30 +18,19 @@ constructor(
         // Only retry once
         if (response.request.header("X-Retry") != null) return null
 
-        val refreshToken = settingsCache.refreshToken
-        if (refreshToken.isBlank()) return null
+        // Never try to refresh while authenticating the auth endpoints themselves.
+        val path = response.request.url.encodedPath
+        if (path.endsWith("/login") || path.endsWith("/refresh")) return null
 
-        val refreshResponse =
-            runBlocking {
-                try {
-                    val result = apiServiceProvider.get().refresh(RefreshRequest(refreshToken))
-                    if (result.isSuccessful) result.body() else null
-                } catch (e: Exception) {
-                    null
-                }
-            }
+        // Funnel through TokenRefresher so this 401 path can't race the 403 interceptor path
+        // or the home reachability check over the rotating refresh token.
+        val triggeringToken = response.request.header("Authorization")?.removePrefix("Bearer ")
+        val newToken = tokenRefresher.refreshBlocking(triggeringToken) ?: return null
 
-        return if (refreshResponse != null) {
-            runBlocking {
-                preferencesRepository.saveTokens(refreshResponse.token, refreshResponse.refresh)
-            }
-            response.request
-                .newBuilder()
-                .header("Authorization", "Bearer ${refreshResponse.token}")
-                .header("X-Retry", "true")
-                .build()
-        } else {
-            null
-        }
+        return response.request
+            .newBuilder()
+            .header("Authorization", "Bearer $newToken")
+            .header("X-Retry", "true")
+            .build()
     }
 }
