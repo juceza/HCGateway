@@ -24,6 +24,7 @@ constructor(
                 username = prefs[UserPreferences.USERNAME] ?: "",
                 themeMode = prefs[UserPreferences.THEME_MODE] ?: "system",
                 syncInterval = prefs[UserPreferences.SYNC_INTERVAL] ?: 15,
+                syncTimeOfDay = prefs[UserPreferences.SYNC_TIME_OF_DAY] ?: -1,
                 fullSyncMode = prefs[UserPreferences.FULL_SYNC_MODE] ?: false,
                 lastSync = prefs[UserPreferences.LAST_SYNC] ?: 0L,
                 changesToken = prefs[UserPreferences.CHANGES_TOKEN] ?: "",
@@ -84,7 +85,16 @@ constructor(
     }
 
     suspend fun updateSyncInterval(minutes: Int) {
-        dataStore.edit { it[UserPreferences.SYNC_INTERVAL] = minutes }
+        // Switching to interval mode disables the fixed daily time (only one can be active).
+        dataStore.edit {
+            it[UserPreferences.SYNC_INTERVAL] = minutes
+            it[UserPreferences.SYNC_TIME_OF_DAY] = -1
+        }
+    }
+
+    /** Set a fixed daily sync time as a minute-of-day (0..1439); switches off interval mode. */
+    suspend fun updateSyncTimeOfDay(minuteOfDay: Int) {
+        dataStore.edit { it[UserPreferences.SYNC_TIME_OF_DAY] = minuteOfDay }
     }
 
     suspend fun updateFullSyncMode(enabled: Boolean) {
@@ -125,7 +135,7 @@ constructor(
             prefs.remove(UserPreferences.REFRESH_TOKEN)
             prefs.remove(UserPreferences.LAST_SYNC)
             prefs.remove(UserPreferences.CHANGES_TOKEN)
-            // Keep: API_BASE, USERNAME, USE_HTTPS, THEME_MODE, SYNC_INTERVAL, FULL_SYNC_MODE, FCM_TOKEN, SENTRY_ENABLED
+            // Keep: API_BASE, USERNAME, USE_HTTPS, THEME_MODE, SYNC_INTERVAL, SYNC_TIME_OF_DAY, FULL_SYNC_MODE, FCM_TOKEN, SENTRY_ENABLED
         }
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
@@ -155,10 +156,12 @@ fun SettingsScreen(
                 enter = expandVertically(autoSyncSpatial) + fadeIn(autoSyncEffects),
                 exit = shrinkVertically(autoSyncSpatial) + fadeOut(autoSyncEffects),
             ) {
-                SettingsItem(title = "Auto-sync interval") {
-                    SyncIntervalPicker(
-                        currentMinutes = settings.syncInterval,
+                SettingsItem(title = "Auto-sync schedule") {
+                    SyncSchedulePicker(
+                        intervalMinutes = settings.syncInterval,
+                        syncTimeOfDay = settings.syncTimeOfDay,
                         onIntervalChange = viewModel::updateSyncInterval,
+                        onTimeChange = viewModel::updateSyncTime,
                     )
                 }
             }
@@ -360,6 +363,110 @@ private fun SettingsItem(
         Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
         Spacer(Modifier.height(8.dp))
         content()
+    }
+}
+
+// --- Sync schedule picker: interval OR a fixed daily time (mutually exclusive) ---
+
+private const val DEFAULT_DAILY_MINUTE_OF_DAY = 600 // 10:00
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SyncSchedulePicker(
+    intervalMinutes: Int,
+    syncTimeOfDay: Int,
+    onIntervalChange: (Int) -> Unit,
+    onTimeChange: (Int) -> Unit,
+) {
+    val dailyMode = syncTimeOfDay in 0..1439
+
+    Column {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = !dailyMode,
+                onClick = { if (dailyMode) onIntervalChange(intervalMinutes) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) { Text("Interval") }
+            SegmentedButton(
+                selected = dailyMode,
+                onClick = {
+                    if (!dailyMode) onTimeChange(DEFAULT_DAILY_MINUTE_OF_DAY)
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) { Text("Daily time") }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (dailyMode) {
+            DailyTimePicker(minuteOfDay = syncTimeOfDay, onTimeChange = onTimeChange)
+        } else {
+            SyncIntervalPicker(currentMinutes = intervalMinutes, onIntervalChange = onIntervalChange)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DailyTimePicker(
+    minuteOfDay: Int,
+    onTimeChange: (Int) -> Unit,
+) {
+    val context = LocalContext.current
+    val is24Hour = remember { android.text.format.DateFormat.is24HourFormat(context) }
+    var showDialog by remember { mutableStateOf(false) }
+
+    OutlinedButton(onClick = { showDialog = true }) {
+        Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text("Daily at ${formatTimeOfDay(minuteOfDay, is24Hour)}")
+    }
+    Text(
+        "Syncs once a day at this time",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+
+    if (showDialog) {
+        val state = rememberTimePickerState(
+            initialHour = minuteOfDay / 60,
+            initialMinute = minuteOfDay % 60,
+            is24Hour = is24Hour,
+        )
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onTimeChange(state.hour * 60 + state.minute)
+                    showDialog = false
+                }) { Text("Set") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+            },
+            text = {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    TimePicker(state = state)
+                }
+            },
+        )
+    }
+}
+
+private fun formatTimeOfDay(minuteOfDay: Int, is24Hour: Boolean): String {
+    val h = minuteOfDay / 60
+    val m = minuteOfDay % 60
+    return if (is24Hour) {
+        "%02d:%02d".format(h, m)
+    } else {
+        val period = if (h < 12) "AM" else "PM"
+        val h12 = when {
+            h == 0 -> 12
+            h > 12 -> h - 12
+            else -> h
+        }
+        "%d:%02d %s".format(h12, m, period)
     }
 }
 

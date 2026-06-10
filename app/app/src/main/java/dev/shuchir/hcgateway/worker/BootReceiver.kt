@@ -31,7 +31,7 @@ class BootReceiver : BroadcastReceiver() {
                 val settings = preferencesRepository.settings.first()
                 if (settings.token.isNotBlank() && settings.startOnBoot) {
                     if (settings.autoSyncEnabled) {
-                        syncScheduler.schedule(settings.syncInterval)
+                        syncScheduler.scheduleFromSettings(settings)
                     }
                     syncNotificationManager.start()
                 }

@@ -116,7 +116,7 @@ constructor(
                     // Schedule background sync on login if enabled
                     val s = preferencesRepository.settings.first()
                     if (s.autoSyncEnabled) {
-                        syncScheduler.schedule(s.syncInterval)
+                        syncScheduler.scheduleFromSettings(s)
                     }
                     _uiState.value.copy(isLoading = false, password = "")
                 } else {

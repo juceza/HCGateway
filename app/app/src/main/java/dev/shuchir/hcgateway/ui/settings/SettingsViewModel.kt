@@ -41,6 +41,14 @@ constructor(
         }
     }
 
+    /** Switch to a fixed daily sync time (minute-of-day, 0..1439). */
+    fun updateSyncTime(minuteOfDay: Int) {
+        viewModelScope.launch {
+            preferencesRepository.updateSyncTimeOfDay(minuteOfDay)
+            syncScheduler.scheduleDaily(minuteOfDay)
+        }
+    }
+
     fun updateFullSyncMode(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.updateFullSyncMode(enabled) }
     }
@@ -57,8 +65,7 @@ constructor(
         viewModelScope.launch {
             preferencesRepository.updateAutoSyncEnabled(enabled)
             if (enabled) {
-                val interval = preferencesRepository.settings.first().syncInterval
-                syncScheduler.schedule(interval)
+                syncScheduler.scheduleFromSettings(preferencesRepository.settings.first())
             } else {
                 syncScheduler.cancel()
             }

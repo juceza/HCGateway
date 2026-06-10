@@ -12,6 +12,7 @@ object UserPreferences {
     val USERNAME = stringPreferencesKey("username")
     val THEME_MODE = stringPreferencesKey("theme_mode") // "light", "dark", "system"
     val SYNC_INTERVAL = intPreferencesKey("sync_interval") // minutes
+    val SYNC_TIME_OF_DAY = intPreferencesKey("sync_time_of_day") // minute-of-day for daily sync, -1 = interval mode
     val FULL_SYNC_MODE = booleanPreferencesKey("full_sync_mode")
     val LAST_SYNC = longPreferencesKey("last_sync") // epoch millis
     val CHANGES_TOKEN = stringPreferencesKey("changes_token")
@@ -31,6 +32,7 @@ data class UserSettings(
     val username: String = "",
     val themeMode: String = "system",
     val syncInterval: Int = 15,
+    val syncTimeOfDay: Int = -1, // minute-of-day for daily sync; -1 means interval mode
     val fullSyncMode: Boolean = false,
     val lastSync: Long = 0L,
     val changesToken: String = "",
